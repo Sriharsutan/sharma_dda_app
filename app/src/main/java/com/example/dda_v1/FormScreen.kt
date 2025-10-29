@@ -1,24 +1,40 @@
-// FormScreen.kt
-// Location: dda_v1/app/src/main/java/com/example/dda_v1/FormScreen.kt
 package com.example.dda_v1
 
+import android.net.Uri
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.selection.selectable
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.navigation.NavHostController
+import kotlinx.coroutines.delay
+import android.widget.Toast
+import coil.compose.rememberAsyncImagePainter
+import androidx.compose.ui.platform.LocalContext
+import com.google.firebase.firestore.ktx.firestore
+import com.google.firebase.ktx.Firebase
+import kotlinx.coroutines.launch
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun FormScreen() {
+fun FormScreen(navController: NavHostController) {
+
+    val coroutineScope = rememberCoroutineScope()  // <-- define this at top of FormScreen()
+
     // State variables for form fields
     var fatherName by remember { mutableStateOf("") }
     var motherName by remember { mutableStateOf("") }
@@ -48,6 +64,35 @@ fun FormScreen() {
     val stateList = listOf("Delhi", "Maharashtra", "Karnataka", "Tamil Nadu", "Gujarat", "Rajasthan")
     val districtList = listOf("North", "South", "East", "West", "North West", "North East", "South West", "South East", "Central")
 
+    // Document upload states
+    val imageMimeTypes = arrayOf("image/png", "image/jpeg", "image/jpg")
+
+    var aadhaarUri by remember { mutableStateOf<Uri?>(null) }
+    var panUri by remember { mutableStateOf<Uri?>(null) }
+    var photoUri by remember { mutableStateOf<Uri?>(null) }
+    var signUri by remember { mutableStateOf<Uri?>(null) }
+
+    val aadhaarLauncher = rememberLauncherForActivityResult(ActivityResultContracts.GetContent()) { uri ->
+        if (uri != null) aadhaarUri = uri
+    }
+    val panLauncher = rememberLauncherForActivityResult(ActivityResultContracts.GetContent()) { uri ->
+        if (uri != null) panUri = uri
+    }
+    val photoLauncher = rememberLauncherForActivityResult(ActivityResultContracts.GetContent()) { uri ->
+        if (uri != null) photoUri = uri
+    }
+    val signLauncher = rememberLauncherForActivityResult(ActivityResultContracts.GetContent()) { uri ->
+        if (uri != null) signUri = uri
+    }
+
+    // --- Firebase and State variables ---
+    val context = LocalContext.current
+    // --- REMOVED: val auth = Firebase.auth ---
+    val db = Firebase.firestore
+
+    var isLoading by remember { mutableStateOf(false) }
+
+    // Main UI
     Column(
         modifier = Modifier
             .fillMaxSize()
@@ -56,7 +101,7 @@ fun FormScreen() {
         TopAppBar(
             title = { Text("Application Form", fontWeight = FontWeight.Bold) },
             colors = TopAppBarDefaults.topAppBarColors(
-                containerColor = Color(0xFF6200EE),
+                containerColor = Color(0xFF0284BE),
                 titleContentColor = Color.White
             )
         )
@@ -71,19 +116,9 @@ fun FormScreen() {
             // Personal Information Section
             SectionHeader(text = "Personal Information")
 
-            FormTextField(
-                value = fatherName,
-                onValueChange = { fatherName = it },
-                label = "Father's Name"
-            )
+            FormTextField(value = fatherName, onValueChange = { fatherName = it }, label = "Father's Name")
+            FormTextField(value = motherName, onValueChange = { motherName = it }, label = "Mother's Name")
 
-            FormTextField(
-                value = motherName,
-                onValueChange = { motherName = it },
-                label = "Mother's Name"
-            )
-
-            // Marital Status Radio Buttons
             RadioButtonGroup(
                 label = "Marital Status",
                 options = listOf("Single", "Married"),
@@ -91,29 +126,15 @@ fun FormScreen() {
                 onOptionSelected = { maritalStatus = it }
             )
 
-            // Spouse Name (conditional)
             if (maritalStatus == "Married") {
-                FormTextField(
-                    value = spouseName,
-                    onValueChange = { spouseName = it },
-                    label = "Spouse Name"
-                )
+                FormTextField(value = spouseName, onValueChange = { spouseName = it }, label = "Spouse Name")
             }
 
-            // Category
-            FormTextField(
-                value = category,
-                onValueChange = { category = it },
-                label = "Category"
-            )
+            FormTextField(value = category, onValueChange = { category = it }, label = "Category")
 
-            // Bank Information Section
-            SectionHeader(
-                text = "Bank Information",
-                modifier = Modifier.padding(top = 16.dp)
-            )
+            // Bank Information
+            SectionHeader(text = "Bank Information", modifier = Modifier.padding(top = 16.dp))
 
-            // Bank Name Dropdown
             DropdownField(
                 value = bankName,
                 label = "Bank Name",
@@ -123,25 +144,11 @@ fun FormScreen() {
                 onOptionSelected = { bankName = it }
             )
 
-            FormTextField(
-                value = branchName,
-                onValueChange = { branchName = it },
-                label = "Branch Name"
-            )
+            FormTextField(value = branchName, onValueChange = { branchName = it }, label = "Branch Name")
+            FormTextField(value = ifscCode, onValueChange = { ifscCode = it }, label = "IFSC Code")
+            FormTextField(value = accountNumber, onValueChange = { accountNumber = it }, label = "Account Number")
 
-            FormTextField(
-                value = ifscCode,
-                onValueChange = { ifscCode = it },
-                label = "IFSC Code"
-            )
-
-            FormTextField(
-                value = accountNumber,
-                onValueChange = { accountNumber = it },
-                label = "Account Number"
-            )
-
-            // Nationality Radio Buttons
+            // Nationality
             RadioButtonGroup(
                 label = "Nationality",
                 options = listOf("Indian", "Other"),
@@ -151,30 +158,12 @@ fun FormScreen() {
             )
 
             // Address Section
-            SectionHeader(
-                text = "Address Information",
-                modifier = Modifier.padding(top = 16.dp)
-            )
+            SectionHeader(text = "Address Information", modifier = Modifier.padding(top = 16.dp))
 
-            FormTextField(
-                value = addressHouse,
-                onValueChange = { addressHouse = it },
-                label = "House Number"
-            )
+            FormTextField(value = addressHouse, onValueChange = { addressHouse = it }, label = "House Number")
+            FormTextField(value = addressStreet, onValueChange = { addressStreet = it }, label = "Street")
+            FormTextField(value = addressArea, onValueChange = { addressArea = it }, label = "Area/Sector")
 
-            FormTextField(
-                value = addressStreet,
-                onValueChange = { addressStreet = it },
-                label = "Street"
-            )
-
-            FormTextField(
-                value = addressArea,
-                onValueChange = { addressArea = it },
-                label = "Area/Sector"
-            )
-
-            // State Dropdown
             DropdownField(
                 value = addressState,
                 label = "State",
@@ -184,7 +173,6 @@ fun FormScreen() {
                 onOptionSelected = { addressState = it }
             )
 
-            // District Dropdown
             DropdownField(
                 value = addressDistrict,
                 label = "District",
@@ -194,13 +182,8 @@ fun FormScreen() {
                 onOptionSelected = { addressDistrict = it }
             )
 
-            FormTextField(
-                value = addressPin,
-                onValueChange = { addressPin = it },
-                label = "PIN Code"
-            )
+            FormTextField(value = addressPin, onValueChange = { addressPin = it }, label = "PIN Code")
 
-            // Region Radio Buttons
             RadioButtonGroup(
                 label = "Region",
                 options = listOf("1", "2"),
@@ -210,34 +193,108 @@ fun FormScreen() {
                 displayPrefix = "Region "
             )
 
-            // Submit Button
-            Button(
-                onClick = {
-                    // TODO: Store values in database
-                    println("Form Submitted")
-                    println("Father: $fatherName, Mother: $motherName")
-                    println("Marital Status: $maritalStatus, Spouse: $spouseName")
-                    println("Category: $category")
-                    println("Bank: $bankName, Branch: $branchName")
-                    println("IFSC: $ifscCode, Account: $accountNumber")
-                    println("Nationality: $nationality")
-                    println("Address: $addressHouse, $addressStreet, $addressArea")
-                    println("State: $addressState, District: $addressDistrict, PIN: $addressPin")
-                    println("Region: $region")
-                },
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(56.dp)
-                    .padding(vertical = 8.dp),
-                colors = ButtonDefaults.buttonColors(
-                    containerColor = Color(0xFF6200EE)
-                )
-            ) {
-                Text(
-                    text = "Submit",
-                    fontSize = 18.sp,
-                    fontWeight = FontWeight.Bold
-                )
+            // Document Upload Section
+            SectionHeader(text = "Document Uploads", modifier = Modifier.padding(top = 16.dp))
+
+            UploadButton("Upload Aadhaar Card", aadhaarUri) {
+                aadhaarLauncher.launch("image/*")
+            }
+            UploadButton("Upload PAN Card", panUri) {
+                panLauncher.launch("image/*")
+            }
+            UploadButton("Upload Passport Size Photo", photoUri) {
+                photoLauncher.launch("image/*")
+            }
+            UploadButton("Upload Signature", signUri) {
+                signLauncher.launch("image/*")
+            }
+
+            Spacer(modifier = Modifier.height(16.dp))
+
+//            // Submit Button
+//            Button(
+//                onClick = {
+//                    println("Form Submitted")
+//                    println("Aadhaar: $aadhaarUri")
+//                    println("PAN: $panUri")
+//                    println("Photo: $photoUri")
+//                    println("Sign: $signUri")
+//                },
+//                modifier = Modifier
+//                    .fillMaxWidth()
+//                    .height(56.dp)
+//                    .padding(vertical = 8.dp),
+//                colors = ButtonDefaults.buttonColors(
+//                    containerColor = Color(0xFF6200EE)
+//                )
+//            ) {
+//                Text(text = "Submit", fontSize = 18.sp, fontWeight = FontWeight.Bold)
+//            }
+//
+//        }
+//    }
+//}
+            if (isLoading) {
+                CircularProgressIndicator(modifier = Modifier.align(Alignment.CenterHorizontally))
+            } else {
+                Button(
+                    onClick = {
+                        if (fatherName.isBlank() || bankName.isBlank()) {
+                            Toast.makeText(context, "Please fill all required fields.", Toast.LENGTH_SHORT).show()
+                        } else {
+                            isLoading = true
+
+                            val formData = hashMapOf(
+                                "fatherName" to fatherName,
+                                "motherName" to motherName,
+                                "maritalStatus" to maritalStatus,
+                                "spouseName" to if (maritalStatus == "Married") spouseName else null,
+                                "category" to category,
+                                "bankName" to bankName,
+                                "branchName" to branchName,
+                                "ifscCode" to ifscCode,
+                                "accountNumber" to accountNumber,
+                                "nationality" to nationality,
+                                "addressHouse" to addressHouse,
+                                "addressStreet" to addressStreet,
+                                "addressArea" to addressArea,
+                                "addressState" to addressState,
+                                "addressDistrict" to addressDistrict,
+                                "addressPin" to addressPin,
+                                "region" to region,
+                                "aadhaarUri" to aadhaarUri?.toString(),
+                                "panUri" to panUri?.toString(),
+                                "photoUri" to photoUri?.toString(),
+                                "signUri" to signUri?.toString(),
+                                "timestamp" to com.google.firebase.firestore.FieldValue.serverTimestamp()
+                            )
+
+                            db.collection("user_forms")
+                                .add(formData)
+                                .addOnSuccessListener {
+                                    Toast.makeText(context, "Form Submitted Successfully!", Toast.LENGTH_LONG).show()
+                                    isLoading = false
+                                    coroutineScope.launch {
+                                        delay(1000)
+                                        navController.navigate("home") {
+                                            popUpTo("form") { inclusive = true }
+                                        }
+                                    }
+                                }
+                                .addOnFailureListener { e ->
+                                    Toast.makeText(context, "Error saving data: ${e.message}", Toast.LENGTH_SHORT).show()
+                                    isLoading = false
+                                }
+                        }
+                    },
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(56.dp)
+                        .padding(vertical = 8.dp),
+                    colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF6200EE))
+                ) {
+                    Text(text = "Submit", fontSize = 18.sp, fontWeight = FontWeight.Bold)
+                }
             }
 
             Spacer(modifier = Modifier.height(16.dp))
@@ -245,29 +302,21 @@ fun FormScreen() {
     }
 }
 
-// Reusable Components
 
+// Reusable Components
 @Composable
-fun SectionHeader(
-    text: String,
-    modifier: Modifier = Modifier
-) {
+fun SectionHeader(text: String, modifier: Modifier = Modifier) {
     Text(
         text = text,
         fontSize = 20.sp,
         fontWeight = FontWeight.Bold,
-        color = Color(0xFF6200EE),
+        color = Color(0xFF051C9B),
         modifier = modifier
     )
 }
 
 @Composable
-fun FormTextField(
-    value: String,
-    onValueChange: (String) -> Unit,
-    label: String,
-    modifier: Modifier = Modifier
-) {
+fun FormTextField(value: String, onValueChange: (String) -> Unit, label: String, modifier: Modifier = Modifier) {
     OutlinedTextField(
         value = value,
         onValueChange = onValueChange,
@@ -286,28 +335,15 @@ fun RadioButtonGroup(
     displayPrefix: String = ""
 ) {
     Column(modifier = modifier) {
-        Text(
-            text = label,
-            fontSize = 16.sp,
-            fontWeight = FontWeight.SemiBold
-        )
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.spacedBy(16.dp)
-        ) {
+        Text(text = label, fontSize = 16.sp, fontWeight = FontWeight.SemiBold)
+        Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(16.dp)) {
             options.forEach { option ->
                 Row(
                     modifier = Modifier
-                        .selectable(
-                            selected = selectedOption == option,
-                            onClick = { onOptionSelected(option) }
-                        ),
+                        .selectable(selected = selectedOption == option, onClick = { onOptionSelected(option) }),
                     verticalAlignment = Alignment.CenterVertically
                 ) {
-                    RadioButton(
-                        selected = selectedOption == option,
-                        onClick = { onOptionSelected(option) }
-                    )
+                    RadioButton(selected = selectedOption == option, onClick = { onOptionSelected(option) })
                     Text(text = displayPrefix + option)
                 }
             }
@@ -341,10 +377,7 @@ fun DropdownField(
                 .fillMaxWidth()
                 .menuAnchor()
         )
-        ExposedDropdownMenu(
-            expanded = expanded,
-            onDismissRequest = { onExpandedChange(false) }
-        ) {
+        ExposedDropdownMenu(expanded = expanded, onDismissRequest = { onExpandedChange(false) }) {
             options.forEach { option ->
                 DropdownMenuItem(
                     text = { Text(option) },
@@ -354,6 +387,39 @@ fun DropdownField(
                     }
                 )
             }
+        }
+    }
+}
+
+@Composable
+fun UploadButton(label: String, imageUri: Uri?, onClick: () -> Unit) {
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(vertical = 8.dp)
+    ) {
+        Button(
+            onClick = onClick,
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(50.dp),
+            colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF777D80)),
+            shape = RoundedCornerShape(12.dp)
+        ) {
+            Text(text = label, fontWeight = FontWeight.Bold)
+        }
+
+        if (imageUri != null) {
+            Spacer(modifier = Modifier.height(8.dp))
+            Image(
+                painter = rememberAsyncImagePainter(imageUri),
+                contentDescription = label,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(150.dp)
+                    .clip(RoundedCornerShape(8.dp)),
+                contentScale = ContentScale.Crop
+            )
         }
     }
 }
