@@ -1,5 +1,3 @@
-// MainActivity.kt
-// Location: dda_v1/app/src/main/java/com/example/dda_v1/MainActivity.kt
 package com.example.dda_v1
 
 import android.os.Bundle
@@ -45,11 +43,14 @@ class MainActivity : ComponentActivity() {
 fun RentalApp() {
     val navController = rememberNavController()
 
-    NavHost(navController = navController, startDestination = "home") {
+    NavHost(navController = navController, startDestination = "login") {
+        composable("login") { LoginScreen(navController) }
+        composable("signup") { SignupScreen(navController) }
         composable("home") { HomeScreen(navController) }
-        composable("rentals_available") { DummyScreen("Rentals Available") }
+        composable("rentals_available") {RentalListScreen(navController)}
+        //composable("rentals_available") { DummyScreen("Rentals Available") }
         composable("rentals_to_do") { DummyScreen("Rentals To Do") }
-        composable("form") { FormScreen() }
+        composable("form") { FormScreen(navController) }
         composable("documentation") { DummyScreen("Documentation") }
     }
 }
@@ -64,9 +65,9 @@ fun HomeScreen(navController: NavController) {
     ) {
         // Top App Bar
         TopAppBar(
-            title = { Text("My DDA Test App", fontWeight = FontWeight.Bold) },
+            title = { Text("Rental Management", fontWeight = FontWeight.Bold) },
             colors = TopAppBarDefaults.topAppBarColors(
-                containerColor = Color(0xFF6200EE),
+                containerColor = Color(0xFF4106AB),
                 titleContentColor = Color.White
             )
         )
@@ -95,19 +96,19 @@ fun HomeScreen(navController: NavController) {
                     title = "Rentals To Do",
                     modifier = Modifier.fillMaxWidth(),
                     onClick = { navController.navigate("rentals_to_do") },
-                    gradientColors = listOf(Color(0xFFf093fb), Color(0xFFf5576c))
+                    gradientColors = listOf(Color(0xFFDF5CEE), Color(0xFFf5576c))
                 )
                 MenuBox(
-                    title = "Form",
+                    title = "Application Form",
                     modifier = Modifier.fillMaxWidth(),
                     onClick = { navController.navigate("form") },
-                    gradientColors = listOf(Color(0xFF4facfe), Color(0xFF00f2fe))
+                    gradientColors = listOf(Color(0xFF4facfe), Color(0xFF2B41C0))
                 )
                 MenuBox(
                     title = "Documentation",
                     modifier = Modifier.fillMaxWidth(),
                     onClick = { navController.navigate("documentation") },
-                    gradientColors = listOf(Color(0xFF43e97b), Color(0xFF38f9d7))
+                    gradientColors = listOf(Color(0xFF2CE56A), Color(0xFF8BC34A))
                 )
             }
         }
