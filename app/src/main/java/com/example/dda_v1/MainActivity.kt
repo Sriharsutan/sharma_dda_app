@@ -42,17 +42,39 @@ class MainActivity : ComponentActivity() {
 @Composable
 fun RentalApp() {
     val navController = rememberNavController()
-
     NavHost(navController = navController, startDestination = "login") {
         composable("login") { LoginScreen(navController) }
         composable("signup") { SignupScreen(navController) }
+
+        // Normal user routes
         composable("home") { HomeScreen(navController) }
-        composable("rentals_available") {RentalListScreen(navController)}
-        //composable("rentals_available") { DummyScreen("Rentals Available") }
+        composable("rentals_available") { RentalListScreen(navController) }
         composable("rentals_to_do") { DummyScreen("Rentals To Do") }
         composable("form") { FormScreen(navController) }
-        composable("documentation") { DummyScreen("Documentation") }
+        composable("documentation") { DocumentationScreen(navController) }
+        composable("doc_form1") { ConveyanceDeedFormScreen(navController) }
+        composable("doc_form2") { DocumentFormScreen("Form 2") }
+        composable("doc_form3") { DocumentFormScreen("Form 3") }
+        composable("doc_form4") { DocumentFormScreen("Form 4") }
+        composable("doc_form5") { DocumentFormScreen("Form 5") }
+
+        // Admin routes
+        composable("admin_dashboard") { AdminDashboardScreen(navController) }
+        composable("view_forms") { ViewFormsScreen(navController) }
+        composable("view_conveyance_forms") {ConveyanceFormsViewScreen(navController)}
     }
+
+//    NavHost(navController = navController, startDestination = "login") {
+//        composable("login") { LoginScreen(navController) }
+//        composable("signup") { SignupScreen(navController) }
+//        composable("home") { HomeScreen(navController) }
+//        composable("rentals_available") {RentalListScreen(navController)}
+//        //composable("rentals_available") { DummyScreen("Rentals Available") }
+//        composable("rentals_to_do") { DummyScreen("Rentals To Do") }
+//        composable("form") { FormScreen(navController) }
+//        composable("documentation") { DummyScreen("Documentation") }
+//    }
+
 }
 
 @OptIn(ExperimentalMaterial3Api::class)
