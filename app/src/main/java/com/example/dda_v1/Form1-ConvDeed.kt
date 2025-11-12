@@ -7,7 +7,9 @@ import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -35,7 +37,7 @@ fun ConveyanceDeedFormScreen(navController: NavController) {
     val db = Firebase.firestore
     val storage = Firebase.storage
 
-    // List of required document names
+    // Stable list of document names
     val documentNames = listOf(
         "Appointment Letter of DDA for CD",
         "Demand Letter",
@@ -56,11 +58,13 @@ fun ConveyanceDeedFormScreen(navController: NavController) {
         "Banker’s ID Proof + Authority Letter"
     )
 
-    // Track URIs of uploaded documents
+    // ✅ Safe immutable initialization (Compose-friendly)
     val documentUris = remember { mutableStateListOf<Uri?>() }
-    repeat(documentNames.size) { documentUris.add(null) }
+    if (documentUris.isEmpty()) {
+        repeat(documentNames.size) { documentUris.add(null) }
+    }
 
-    // File pickers for each document
+    // File pickers
     val pickers = documentNames.mapIndexed { index, _ ->
         rememberLauncherForActivityResult(ActivityResultContracts.GetContent()) { uri ->
             if (uri != null) documentUris[index] = uri
@@ -84,11 +88,13 @@ fun ConveyanceDeedFormScreen(navController: NavController) {
         Column(
             modifier = Modifier
                 .fillMaxSize()
+                .verticalScroll(rememberScrollState()) // ✅ scrollable
                 .background(Color(0xFFF5F5F5))
                 .padding(padding)
                 .padding(16.dp),
             verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
+
             Text(
                 text = "Upload Required Documents",
                 fontSize = 18.sp,
@@ -96,7 +102,7 @@ fun ConveyanceDeedFormScreen(navController: NavController) {
                 color = Color(0xFF4106AB)
             )
 
-            // Upload buttons for each document
+            // Upload buttons
             documentNames.forEachIndexed { index, docName ->
                 UploadDocButton(
                     label = docName,
@@ -118,7 +124,7 @@ fun ConveyanceDeedFormScreen(navController: NavController) {
             Button(
                 onClick = {
                     coroutineScope.launch {
-                        // Check if any document is missing
+                        // Validate all uploads
                         val missingDocs = documentNames.filterIndexed { index, _ ->
                             documentUris[index] == null
                         }
@@ -132,7 +138,6 @@ fun ConveyanceDeedFormScreen(navController: NavController) {
                             return@launch
                         }
 
-                        // All documents uploaded — proceed with submission
                         isSubmitting = true
                         progressText = "Uploading documents..."
                         val uploadedDocs = mutableMapOf<String, String>()
@@ -143,7 +148,7 @@ fun ConveyanceDeedFormScreen(navController: NavController) {
                                     val safeName = documentNames[index].replace(" ", "_")
                                     progressText = "Uploading ${documentNames[index]}..."
                                     val ref = storage.reference.child(
-                                        "conveyance_deed/${System.currentTimeMillis()}_${safeName}.jpg"
+                                        "conveyance_deed/${System.currentTimeMillis()}_$safeName.jpg"
                                     )
                                     ref.putFile(it).await()
                                     val url = ref.downloadUrl.await().toString()
@@ -151,7 +156,7 @@ fun ConveyanceDeedFormScreen(navController: NavController) {
                                 }
                             }
 
-                            // Save metadata to Firestore
+                            // Save in Firestore
                             db.collection("conveyance_forms")
                                 .add(
                                     hashMapOf(
@@ -205,7 +210,7 @@ fun UploadDocButton(label: String, imageUri: Uri?, onClick: () -> Unit) {
         if (imageUri != null) {
             Spacer(modifier = Modifier.height(8.dp))
             Image(
-                painter = rememberAsyncImagePainter(imageUri),
+                painter = rememberAsyncImagePainter(model = imageUri),
                 contentDescription = label,
                 modifier = Modifier
                     .fillMaxWidth()
