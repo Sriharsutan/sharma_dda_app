@@ -17,23 +17,28 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import androidx.navigation.NavHostController
-import kotlinx.coroutines.delay
+import androidx.navigation.NavController
 import android.widget.Toast
 import coil.compose.rememberAsyncImagePainter
-import androidx.compose.ui.platform.LocalContext
+import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.firestore.ktx.firestore
 import com.google.firebase.ktx.Firebase
+import com.google.firebase.storage.ktx.storage
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.tasks.await
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun FormScreen(navController: NavHostController) {
-
-    val coroutineScope = rememberCoroutineScope()  // <-- define this at top of FormScreen()
+fun FormScreen(navController: NavController) {
+    val coroutineScope = rememberCoroutineScope()
+    val context = LocalContext.current
+    val auth = FirebaseAuth.getInstance()
+    val db = Firebase.firestore
+    val storage = Firebase.storage
 
     // State variables for form fields
     var fatherName by remember { mutableStateOf("") }
@@ -65,8 +70,6 @@ fun FormScreen(navController: NavHostController) {
     val districtList = listOf("North", "South", "East", "West", "North West", "North East", "South West", "South East", "Central")
 
     // Document upload states
-    val imageMimeTypes = arrayOf("image/png", "image/jpeg", "image/jpg")
-
     var aadhaarUri by remember { mutableStateOf<Uri?>(null) }
     var panUri by remember { mutableStateOf<Uri?>(null) }
     var photoUri by remember { mutableStateOf<Uri?>(null) }
@@ -85,14 +88,24 @@ fun FormScreen(navController: NavHostController) {
         if (uri != null) signUri = uri
     }
 
-    // --- Firebase and State variables ---
-    val context = LocalContext.current
-    // --- REMOVED: val auth = Firebase.auth ---
-    val db = Firebase.firestore
-
     var isLoading by remember { mutableStateOf(false) }
+    var uploadProgress by remember { mutableStateOf("") }
 
-    // Main UI
+    // Function to upload image to Firebase Storage
+    suspend fun uploadImageToStorage(uri: Uri, fileName: String): String? {
+        return try {
+            val userId = auth.currentUser?.uid ?: "unknown"
+            val storageRef = storage.reference.child("users/$userId/$fileName")
+
+            storageRef.putFile(uri).await()
+            val downloadUrl = storageRef.downloadUrl.await()
+            downloadUrl.toString()
+        } catch (e: Exception) {
+            Toast.makeText(context, "Error uploading $fileName: ${e.message}", Toast.LENGTH_SHORT).show()
+            null
+        }
+    }
+
     Column(
         modifier = Modifier
             .fillMaxSize()
@@ -101,7 +114,7 @@ fun FormScreen(navController: NavHostController) {
         TopAppBar(
             title = { Text("Application Form", fontWeight = FontWeight.Bold) },
             colors = TopAppBarDefaults.topAppBarColors(
-                containerColor = Color(0xFF0284BE),
+                containerColor = Color(0xFF6200EE),
                 titleContentColor = Color.White
             )
         )
@@ -186,7 +199,7 @@ fun FormScreen(navController: NavHostController) {
 
             RadioButtonGroup(
                 label = "Region",
-                options = listOf("1", "2"),
+                options = listOf("1", "2", "3", "4"),
                 selectedOption = region,
                 onOptionSelected = { region = it },
                 modifier = Modifier.padding(top = 16.dp),
@@ -209,31 +222,19 @@ fun FormScreen(navController: NavHostController) {
                 signLauncher.launch("image/*")
             }
 
+            // Upload Progress
+            if (uploadProgress.isNotEmpty()) {
+                Text(
+                    text = uploadProgress,
+                    color = Color(0xFF6200EE),
+                    fontWeight = FontWeight.Bold,
+                    modifier = Modifier.padding(vertical = 8.dp)
+                )
+            }
+
             Spacer(modifier = Modifier.height(16.dp))
 
-//            // Submit Button
-//            Button(
-//                onClick = {
-//                    println("Form Submitted")
-//                    println("Aadhaar: $aadhaarUri")
-//                    println("PAN: $panUri")
-//                    println("Photo: $photoUri")
-//                    println("Sign: $signUri")
-//                },
-//                modifier = Modifier
-//                    .fillMaxWidth()
-//                    .height(56.dp)
-//                    .padding(vertical = 8.dp),
-//                colors = ButtonDefaults.buttonColors(
-//                    containerColor = Color(0xFF6200EE)
-//                )
-//            ) {
-//                Text(text = "Submit", fontSize = 18.sp, fontWeight = FontWeight.Bold)
-//            }
-//
-//        }
-//    }
-//}
+            // Submit Button
             if (isLoading) {
                 CircularProgressIndicator(modifier = Modifier.align(Alignment.CenterHorizontally))
             } else {
@@ -243,48 +244,81 @@ fun FormScreen(navController: NavHostController) {
                             Toast.makeText(context, "Please fill all required fields.", Toast.LENGTH_SHORT).show()
                         } else {
                             isLoading = true
+                            uploadProgress = "Uploading documents..."
 
-                            val formData = hashMapOf(
-                                "fatherName" to fatherName,
-                                "motherName" to motherName,
-                                "maritalStatus" to maritalStatus,
-                                "spouseName" to if (maritalStatus == "Married") spouseName else null,
-                                "category" to category,
-                                "bankName" to bankName,
-                                "branchName" to branchName,
-                                "ifscCode" to ifscCode,
-                                "accountNumber" to accountNumber,
-                                "nationality" to nationality,
-                                "addressHouse" to addressHouse,
-                                "addressStreet" to addressStreet,
-                                "addressArea" to addressArea,
-                                "addressState" to addressState,
-                                "addressDistrict" to addressDistrict,
-                                "addressPin" to addressPin,
-                                "region" to region,
-                                "aadhaarUri" to aadhaarUri?.toString(),
-                                "panUri" to panUri?.toString(),
-                                "photoUri" to photoUri?.toString(),
-                                "signUri" to signUri?.toString(),
-                                "timestamp" to com.google.firebase.firestore.FieldValue.serverTimestamp()
-                            )
-
-                            db.collection("user_forms")
-                                .add(formData)
-                                .addOnSuccessListener {
-                                    Toast.makeText(context, "Form Submitted Successfully!", Toast.LENGTH_LONG).show()
-                                    isLoading = false
-                                    coroutineScope.launch {
-                                        delay(1000)
-                                        navController.navigate("home") {
-                                            popUpTo("form") { inclusive = true }
-                                        }
+                            coroutineScope.launch {
+                                try {
+                                    // Upload images to Firebase Storage
+                                    val aadhaarUrl = aadhaarUri?.let {
+                                        uploadProgress = "Uploading Aadhaar..."
+                                        uploadImageToStorage(it, "aadhaar_${System.currentTimeMillis()}.jpg")
                                     }
-                                }
-                                .addOnFailureListener { e ->
-                                    Toast.makeText(context, "Error saving data: ${e.message}", Toast.LENGTH_SHORT).show()
+
+                                    val panUrl = panUri?.let {
+                                        uploadProgress = "Uploading PAN..."
+                                        uploadImageToStorage(it, "pan_${System.currentTimeMillis()}.jpg")
+                                    }
+
+                                    val photoUrl = photoUri?.let {
+                                        uploadProgress = "Uploading Photo..."
+                                        uploadImageToStorage(it, "photo_${System.currentTimeMillis()}.jpg")
+                                    }
+
+                                    val signUrl = signUri?.let {
+                                        uploadProgress = "Uploading Signature..."
+                                        uploadImageToStorage(it, "signature_${System.currentTimeMillis()}.jpg")
+                                    }
+
+                                    uploadProgress = "Saving form data..."
+
+                                    // Save form data with download URLs
+                                    val formData = hashMapOf(
+                                        "userId" to (auth.currentUser?.email ?: "unknown"),
+                                        "fatherName" to fatherName,
+                                        "motherName" to motherName,
+                                        "maritalStatus" to maritalStatus,
+                                        "spouseName" to if (maritalStatus == "Married") spouseName else null,
+                                        "category" to category,
+                                        "bankName" to bankName,
+                                        "branchName" to branchName,
+                                        "ifscCode" to ifscCode,
+                                        "accountNumber" to accountNumber,
+                                        "nationality" to nationality,
+                                        "addressHouse" to addressHouse,
+                                        "addressStreet" to addressStreet,
+                                        "addressArea" to addressArea,
+                                        "addressState" to addressState,
+                                        "addressDistrict" to addressDistrict,
+                                        "addressPin" to addressPin,
+                                        "region" to region,
+                                        "aadhaarUrl" to aadhaarUrl,
+                                        "panUrl" to panUrl,
+                                        "photoUrl" to photoUrl,
+                                        "signUrl" to signUrl,
+                                        "timestamp" to com.google.firebase.firestore.FieldValue.serverTimestamp()
+                                    )
+
+                                    db.collection("user_forms")
+                                        .add(formData)
+                                        .addOnSuccessListener {
+                                            Toast.makeText(context, "Form Submitted Successfully!", Toast.LENGTH_LONG).show()
+                                            isLoading = false
+                                            uploadProgress = ""
+                                            navController.navigate("home") {
+                                                popUpTo("form") { inclusive = true }
+                                            }
+                                        }
+                                        .addOnFailureListener { e ->
+                                            Toast.makeText(context, "Error saving data: ${e.message}", Toast.LENGTH_SHORT).show()
+                                            isLoading = false
+                                            uploadProgress = ""
+                                        }
+                                } catch (e: Exception) {
+                                    Toast.makeText(context, "Error: ${e.message}", Toast.LENGTH_SHORT).show()
                                     isLoading = false
+                                    uploadProgress = ""
                                 }
+                            }
                         }
                     },
                     modifier = Modifier
@@ -302,7 +336,6 @@ fun FormScreen(navController: NavHostController) {
     }
 }
 
-
 // Reusable Components
 @Composable
 fun SectionHeader(text: String, modifier: Modifier = Modifier) {
@@ -310,7 +343,7 @@ fun SectionHeader(text: String, modifier: Modifier = Modifier) {
         text = text,
         fontSize = 20.sp,
         fontWeight = FontWeight.Bold,
-        color = Color(0xFF051C9B),
+        color = Color(0xFF6200EE),
         modifier = modifier
     )
 }
@@ -403,7 +436,7 @@ fun UploadButton(label: String, imageUri: Uri?, onClick: () -> Unit) {
             modifier = Modifier
                 .fillMaxWidth()
                 .height(50.dp),
-            colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF777D80)),
+            colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF6200EE)),
             shape = RoundedCornerShape(12.dp)
         ) {
             Text(text = label, fontWeight = FontWeight.Bold)
