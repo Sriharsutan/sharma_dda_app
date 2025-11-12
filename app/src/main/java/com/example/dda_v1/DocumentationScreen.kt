@@ -48,10 +48,10 @@ fun DocumentationScreen(navController: NavController) {
             )
 
             // 5 documentation buttons
-            DocumentationButton("Form 1", onClick = { navController.navigate("doc_form1") })
-            DocumentationButton("Form 2", onClick = { navController.navigate("doc_form2") })
-            DocumentationButton("Form 3", onClick = { navController.navigate("doc_form3") })
-            DocumentationButton("Form 4", onClick = { navController.navigate("doc_form4") })
+            DocumentationButton("Conveyance Deed Form", onClick = { navController.navigate("conv_deed_form") })
+            DocumentationButton("Possession Letter and NOC Form", onClick = { navController.navigate("pletter_noc") })
+            DocumentationButton("Applicant & Co-applicant (Salaried)", onClick = { navController.navigate("salaried") })
+            DocumentationButton("Self-employeed / Business", onClick = { navController.navigate("self-employeed") })
             DocumentationButton("Form 5", onClick = { navController.navigate("doc_form5") })
         }
     }
