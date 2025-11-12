@@ -26,6 +26,10 @@ import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import com.google.accompanist.pager.*
+import androidx.compose.foundation.ExperimentalFoundationApi
+import androidx.compose.foundation.pager.HorizontalPager
+import androidx.compose.foundation.pager.rememberPagerState
+
 import kotlinx.coroutines.delay
 
 class MainActivity : ComponentActivity() {
@@ -52,10 +56,10 @@ fun RentalApp() {
         composable("rentals_to_do") { DummyScreen("Rentals To Do") }
         composable("form") { FormScreen(navController) }
         composable("documentation") { DocumentationScreen(navController) }
-        composable("doc_form1") { ConveyanceDeedFormScreen(navController) }
-        composable("doc_form2") { DocumentFormScreen("Form 2") }
-        composable("doc_form3") { DocumentFormScreen("Form 3") }
-        composable("doc_form4") { DocumentFormScreen("Form 4") }
+        composable("conv_deed_form") { ConveyanceDeedFormScreen(navController) }
+        composable("pletter_noc") { PossessionLetterNocFormScreen(navController) }
+        composable("salaried") { SalariedFormScreen(navController) }
+        composable("self-employeed") { SelfEmployeedFormScreen(navController) }
         composable("doc_form5") { DocumentFormScreen("Form 5") }
 
         // Admin routes
