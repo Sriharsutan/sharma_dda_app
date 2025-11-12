@@ -157,13 +157,22 @@ fun LoginScreen(navController: NavController) {
                                 val auth = FirebaseAuth.getInstance()
                                 println("Attempting login for: $email")
 
+
+                                val adminEmail = "admin@dda.com"
+                                val adminPassword = "admin123"
+
                                 auth.signInWithEmailAndPassword(email, password)
                                     .addOnCompleteListener { task ->
                                         isLoading = false
                                         if (task.isSuccessful) {
-                                            println("Login successful for: $email")
-                                            navController.navigate("home") {
-                                                popUpTo("login") { inclusive = true }
+                                            if (email == adminEmail && password == adminPassword) {
+                                                navController.navigate("admin_dashboard") {
+                                                    popUpTo("login") { inclusive = true }
+                                                }
+                                            } else {
+                                                navController.navigate("home") {
+                                                    popUpTo("login") { inclusive = true }
+                                                }
                                             }
                                         } else {
                                             val error = task.exception?.message
@@ -172,6 +181,22 @@ fun LoginScreen(navController: NavController) {
                                             errorMessage = error
                                         }
                                     }
+
+//                                auth.signInWithEmailAndPassword(email, password)
+//                                    .addOnCompleteListener { task ->
+//                                        isLoading = false
+//                                        if (task.isSuccessful) {
+//                                            println("Login successful for: $email")
+//                                            navController.navigate("home") {
+//                                                popUpTo("login") { inclusive = true }
+//                                            }
+//                                        } else {
+//                                            val error = task.exception?.message
+//                                                ?: "Login failed. Please try again."
+//                                            println("Login failed: $error")
+//                                            errorMessage = error
+//                                        }
+//                                    }
                             }
                         },
                         modifier = Modifier
