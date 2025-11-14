@@ -65,10 +65,47 @@ fun RentalApp() {
         // Admin routes
         composable("admin_dashboard") { AdminDashboardScreen(navController) }
         composable("view_forms") { ViewFormsScreen(navController) }
-        composable("view_conveyance_forms") {ConveyanceFormsViewScreen(navController)}
-        composable("view_possession_forms") { PossessionFormsViewScreen(navController) }
-        composable("view_salaried_forms") { SalariedFormsViewScreen(navController) }
-        composable("view_business_forms") { BusinessFormsViewScreen(navController) }
+        composable("view_all_forms") { AllFormsTabbedScreen(navController) }
+
+//        composable("view_conveyance_forms") {ConveyanceFormsViewScreen(navController)}
+//        composable("view_possession_forms") { PossessionFormsViewScreen(navController) }
+//        composable("view_salaried_forms") { SalariedFormsViewScreen(navController) }
+//        composable("view_business_forms") { BusinessFormsViewScreen(navController) }
+        composable("view_conveyance_forms") {
+            FormsViewScreen(
+                navController,
+                collectionName = "conveyance_forms",
+                screenTitle = "Conveyance & Deed Submissions",
+                accentColor = Color(0xFF4106AB)
+            )
+        }
+
+        composable("view_possession_forms") {
+            FormsViewScreen(
+                navController,
+                collectionName = "possession_noc_forms",
+                screenTitle = "Possession Letter & NOC Submissions",
+                accentColor = Color(0xFF0072FF)
+            )
+        }
+
+        composable("view_salaried_forms") {
+            FormsViewScreen(
+                navController,
+                collectionName = "salaried_forms",
+                screenTitle = "Salaried Form Submissions",
+                accentColor = Color(0xFFF7971E)
+            )
+        }
+
+        composable("view_business_forms") {
+            FormsViewScreen(
+                navController,
+                collectionName = "business_forms",
+                screenTitle = "Business Form Submissions",
+                accentColor = Color(0xFF56AB2F)
+            )
+        }
     }
 
 //    NavHost(navController = navController, startDestination = "login") {
@@ -144,28 +181,29 @@ fun HomeScreen(navController: NavController) {
     }
 }
 
-@OptIn(ExperimentalPagerApi::class)
+@OptIn(ExperimentalFoundationApi::class)
 @Composable
 fun ImageCarousel() {
-    val pagerState = rememberPagerState()
+    // New PagerState initialization (requires lambda for page count)
+    val pagerState = rememberPagerState(pageCount = { 2 })
 
     // Auto-scroll effect
     LaunchedEffect(Unit) {
         while (true) {
-            delay(3000)
-            val nextPage = (pagerState.currentPage + 1) % 2
+            kotlinx.coroutines.delay(3000)
+            val nextPage = (pagerState.currentPage + 1) % pagerState.pageCount
             pagerState.animateScrollToPage(nextPage)
         }
     }
 
-    Column {
+    Column(horizontalAlignment = Alignment.CenterHorizontally) {
         Box(
             modifier = Modifier
                 .fillMaxWidth()
                 .height(200.dp)
         ) {
+            // New Jetpack Compose Pager
             HorizontalPager(
-                count = 2,
                 state = pagerState,
                 modifier = Modifier.fillMaxSize()
             ) { page ->
@@ -176,51 +214,115 @@ fun ImageCarousel() {
                     shape = RoundedCornerShape(12.dp),
                     elevation = CardDefaults.cardElevation(4.dp)
                 ) {
-                    // Replace with your actual images
-                    // Method 1: Using actual image resources
                     Image(
                         painter = painterResource(
-                            id = if (page == 0) R.drawable.image1
-                            else R.drawable.image2
+                            id = if (page == 0) R.drawable.image1 else R.drawable.image2
                         ),
                         contentDescription = "Carousel Image ${page + 1}",
                         modifier = Modifier.fillMaxSize(),
                         contentScale = ContentScale.Crop
                     )
-
-                    // Method 2: Keep placeholder boxes (comment out above and uncomment below)
-                    /*
-                    Box(
-                        modifier = Modifier
-                            .fillMaxSize()
-                            .background(
-                                if (page == 0) Color(0xFF4CAF50) else Color(0xFF2196F3)
-                            ),
-                        contentAlignment = Alignment.Center
-                    ) {
-                        Text(
-                            text = "Image ${page + 1}",
-                            fontSize = 24.sp,
-                            fontWeight = FontWeight.Bold,
-                            color = Color.White
-                        )
-                    }
-                    */
                 }
             }
         }
 
-        // Dots indicator
-        HorizontalPagerIndicator(
-            pagerState = pagerState,
-            modifier = Modifier
-                .align(Alignment.CenterHorizontally)
-                .padding(top = 8.dp),
-            activeColor = Color(0xFF6200EE),
-            inactiveColor = Color.LightGray
-        )
+        Spacer(modifier = Modifier.height(8.dp))
+
+        // Simple Dot Indicator (manual since HorizontalPagerIndicator is deprecated)
+        Row(
+            horizontalArrangement = Arrangement.Center,
+            modifier = Modifier.fillMaxWidth()
+        ) {
+            repeat(pagerState.pageCount) { index ->
+                val color = if (pagerState.currentPage == index) Color(0xFF6200EE) else Color.LightGray
+                Box(
+                    modifier = Modifier
+                        .padding(4.dp)
+                        .size(if (pagerState.currentPage == index) 12.dp else 8.dp)
+                        .background(color, shape = RoundedCornerShape(50))
+                )
+            }
+        }
     }
 }
+
+//@OptIn(ExperimentalPagerApi::class)
+//@Composable
+//fun ImageCarousel() {
+//    val pagerState = rememberPagerState()
+//
+//    // Auto-scroll effect
+//    LaunchedEffect(Unit) {
+//        while (true) {
+//            delay(3000)
+//            val nextPage = (pagerState.currentPage + 1) % 2
+//            pagerState.animateScrollToPage(nextPage)
+//        }
+//    }
+//
+//    Column {
+//        Box(
+//            modifier = Modifier
+//                .fillMaxWidth()
+//                .height(200.dp)
+//        ) {
+//            HorizontalPager(
+//                count = 2,
+//                state = pagerState,
+//                modifier = Modifier.fillMaxSize()
+//            ) { page ->
+//                Card(
+//                    modifier = Modifier
+//                        .fillMaxSize()
+//                        .padding(8.dp),
+//                    shape = RoundedCornerShape(12.dp),
+//                    elevation = CardDefaults.cardElevation(4.dp)
+//                ) {
+//                    // Replace with your actual images
+//                    // Method 1: Using actual image resources
+//                    Image(
+//                        painter = painterResource(
+//                            id = if (page == 0) R.drawable.image1
+//                            else R.drawable.image2
+//                        ),
+//                        contentDescription = "Carousel Image ${page + 1}",
+//                        modifier = Modifier.fillMaxSize(),
+//                        contentScale = ContentScale.Crop
+//                    )
+//
+//                    // Method 2: Keep placeholder boxes (comment out above and uncomment below)
+//                    /*
+//                    Box(
+//                        modifier = Modifier
+//                            .fillMaxSize()
+//                            .background(
+//                                if (page == 0) Color(0xFF4CAF50) else Color(0xFF2196F3)
+//                            ),
+//                        contentAlignment = Alignment.Center
+//                    ) {
+//                        Text(
+//                            text = "Image ${page + 1}",
+//                            fontSize = 24.sp,
+//                            fontWeight = FontWeight.Bold,
+//                            color = Color.White
+//                        )
+//                    }
+//                    */
+//                }
+//            }
+//        }
+//
+//        // Dots indicator
+//        HorizontalPagerIndicator(
+//            pagerState = pagerState,
+//            modifier = Modifier
+//                .align(Alignment.CenterHorizontally)
+//                .padding(top = 8.dp),
+//            activeColor = Color(0xFF6200EE),
+//            inactiveColor = Color.LightGray
+//        )
+//    }
+//}
 
 @Composable
 fun MenuBox(
