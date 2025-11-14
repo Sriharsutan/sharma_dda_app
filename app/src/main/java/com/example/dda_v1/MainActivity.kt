@@ -66,6 +66,9 @@ fun RentalApp() {
         composable("admin_dashboard") { AdminDashboardScreen(navController) }
         composable("view_forms") { ViewFormsScreen(navController) }
         composable("view_conveyance_forms") {ConveyanceFormsViewScreen(navController)}
+        composable("view_possession_forms") { PossessionFormsViewScreen(navController) }
+        composable("view_salaried_forms") { SalariedFormsViewScreen(navController) }
+        composable("view_business_forms") { BusinessFormsViewScreen(navController) }
     }
 
 //    NavHost(navController = navController, startDestination = "login") {
