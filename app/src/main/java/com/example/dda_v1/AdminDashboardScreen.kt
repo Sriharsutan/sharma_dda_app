@@ -12,6 +12,8 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.navigation.NavController
 import com.google.firebase.auth.FirebaseAuth
 
@@ -27,7 +29,7 @@ fun AdminDashboardScreen(navController: NavController) {
     ) {
         // Top App Bar
         TopAppBar(
-            title = { Text("Admin Screen", fontWeight = FontWeight.Bold) },
+            title = { Text("Admin Dashboard", fontWeight = FontWeight.Bold) },
             colors = TopAppBarDefaults.topAppBarColors(
                 containerColor = Color(0xFF6200EE),
                 titleContentColor = Color.White
@@ -38,6 +40,7 @@ fun AdminDashboardScreen(navController: NavController) {
         Column(
             modifier = Modifier
                 .fillMaxSize()
+                .verticalScroll(rememberScrollState())   // Enables scrolling
                 .padding(24.dp),
             horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = Arrangement.spacedBy(24.dp)
@@ -48,9 +51,7 @@ fun AdminDashboardScreen(navController: NavController) {
             Card(
                 modifier = Modifier.fillMaxWidth(),
                 shape = RoundedCornerShape(16.dp),
-                colors = CardDefaults.cardColors(
-                    containerColor = Color.White
-                ),
+                colors = CardDefaults.cardColors(containerColor = Color.White),
                 elevation = CardDefaults.cardElevation(4.dp)
             ) {
                 Column(
@@ -75,129 +76,48 @@ fun AdminDashboardScreen(navController: NavController) {
             }
 
             // View Filled Forms Button
-            Card(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(120.dp),
-                shape = RoundedCornerShape(20.dp),
-                colors = CardDefaults.cardColors(containerColor = Color.Transparent),
-                elevation = CardDefaults.cardElevation(8.dp)
+            GradientButton(
+                emoji = "📋",
+                text = "View Filled Forms",
+                colors = listOf(Color(0xFF667eea), Color(0xFF764ba2))
             ) {
-                Button(
-                    onClick = { navController.navigate("view_forms") },
-                    modifier = Modifier.fillMaxSize(),
-                    shape = RoundedCornerShape(20.dp),
-                    colors = ButtonDefaults.buttonColors(containerColor = Color.Transparent),
-                    contentPadding = PaddingValues(0.dp)
-                ) {
-                    Box(
-                        modifier = Modifier
-                            .fillMaxSize()
-                            .background(
-                                brush = Brush.linearGradient(
-                                    colors = listOf(Color(0xFF667eea), Color(0xFF764ba2))
-                                )
-                            ),
-                        contentAlignment = Alignment.Center
-                    ) {
-                        Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                            Text(text = "📋", fontSize = 36.sp)
-                            Spacer(modifier = Modifier.height(8.dp))
-                            Text(
-                                text = "View Filled Forms",
-                                fontSize = 20.sp,
-                                fontWeight = FontWeight.Bold,
-                                color = Color.White
-                            )
-                        }
-                    }
-                }
+                navController.navigate("view_forms")
             }
 
             // Conveyance & Deed Forms Button
-            Card(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(120.dp),
-                shape = RoundedCornerShape(20.dp),
-                colors = CardDefaults.cardColors(containerColor = Color.Transparent),
-                elevation = CardDefaults.cardElevation(8.dp)
+            GradientButton(
+                emoji = "📁",
+                text = "Conveyance & Deed Forms",
+                colors = listOf(Color(0xFF11998e), Color(0xFF38ef7d))
             ) {
-                Button(
-                    onClick = { navController.navigate("view_conveyance_forms") },
-                    modifier = Modifier.fillMaxSize(),
-                    shape = RoundedCornerShape(20.dp),
-                    colors = ButtonDefaults.buttonColors(containerColor = Color.Transparent),
-                    contentPadding = PaddingValues(0.dp)
-                ) {
-                    Box(
-                        modifier = Modifier
-                            .fillMaxSize()
-                            .background(
-                                brush = Brush.linearGradient(
-                                    colors = listOf(Color(0xFF11998e), Color(0xFF38ef7d))
-                                )
-                            ),
-                        contentAlignment = Alignment.Center
-                    ) {
-                        Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                            Text(text = "📁", fontSize = 36.sp)
-                            Spacer(modifier = Modifier.height(8.dp))
-                            Text(
-                                text = "Conveyance & Deed Forms",
-                                fontSize = 20.sp,
-                                fontWeight = FontWeight.Bold,
-                                color = Color.White
-                            )
-                        }
-                    }
-                }
+                navController.navigate("view_conveyance_forms")
             }
 
-            // (Optional) User Management Button
-            Card(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(120.dp),
-                shape = RoundedCornerShape(20.dp),
-                colors = CardDefaults.cardColors(containerColor = Color.Transparent),
-                elevation = CardDefaults.cardElevation(8.dp)
+            // Possession & NOC Forms Button
+            GradientButton(
+                emoji = "📄",
+                text = "Possession Letter & NOC Forms",
+                colors = listOf(Color(0xFF00c6ff), Color(0xFF0072ff))
             ) {
-                Button(
-                    onClick = { /* Future Feature */ },
-                    modifier = Modifier.fillMaxSize(),
-                    shape = RoundedCornerShape(20.dp),
-                    colors = ButtonDefaults.buttonColors(containerColor = Color.Transparent),
-                    contentPadding = PaddingValues(0.dp),
-                    enabled = false
-                ) {
-                    Box(
-                        modifier = Modifier
-                            .fillMaxSize()
-                            .background(
-                                brush = Brush.linearGradient(
-                                    colors = listOf(Color(0xFF4facfe), Color(0xFF00f2fe))
-                                )
-                            ),
-                        contentAlignment = Alignment.Center
-                    ) {
-                        Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                            Text(text = "👥", fontSize = 36.sp)
-                            Spacer(modifier = Modifier.height(8.dp))
-                            Text(
-                                text = "User Management",
-                                fontSize = 20.sp,
-                                fontWeight = FontWeight.Bold,
-                                color = Color.White
-                            )
-                            Text(
-                                text = "(Coming Soon)",
-                                fontSize = 12.sp,
-                                color = Color.White.copy(alpha = 0.7f)
-                            )
-                        }
-                    }
-                }
+                navController.navigate("view_possession_forms")
+            }
+
+            // Salaried Forms Button
+            GradientButton(
+                emoji = "💰",
+                text = "Salaried Forms",
+                colors = listOf(Color(0xFFf7971e), Color(0xFFffd200))
+            ) {
+                navController.navigate("view_salaried_forms")
+            }
+
+            // Business / Self-Employed Forms Button
+            GradientButton(
+                emoji = "🏢",
+                text = "Self-Employeed/Business Forms",
+                colors = listOf(Color(0xFF56ab2f), Color(0xFFa8e063))
+            ) {
+                navController.navigate("view_business_forms")
             }
 
             Spacer(modifier = Modifier.weight(1f))
@@ -223,6 +143,49 @@ fun AdminDashboardScreen(navController: NavController) {
                     fontSize = 18.sp,
                     fontWeight = FontWeight.Bold
                 )
+            }
+        }
+    }
+}
+
+@Composable
+fun GradientButton(
+    emoji: String,
+    text: String,
+    colors: List<Color>,
+    onClick: () -> Unit
+) {
+    Card(
+        modifier = Modifier
+            .fillMaxWidth()
+            .height(120.dp),
+        shape = RoundedCornerShape(20.dp),
+        colors = CardDefaults.cardColors(containerColor = Color.Transparent),
+        elevation = CardDefaults.cardElevation(8.dp)
+    ) {
+        Button(
+            onClick = onClick,
+            modifier = Modifier.fillMaxSize(),
+            shape = RoundedCornerShape(20.dp),
+            colors = ButtonDefaults.buttonColors(containerColor = Color.Transparent),
+            contentPadding = PaddingValues(0.dp)
+        ) {
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .background(brush = Brush.linearGradient(colors)),
+                contentAlignment = Alignment.Center
+            ) {
+                Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                    Text(text = emoji, fontSize = 36.sp)
+                    Spacer(modifier = Modifier.height(8.dp))
+                    Text(
+                        text = text,
+                        fontSize = 20.sp,
+                        fontWeight = FontWeight.Bold,
+                        color = Color.White
+                    )
+                }
             }
         }
     }
