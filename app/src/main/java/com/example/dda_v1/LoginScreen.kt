@@ -1,20 +1,26 @@
 package com.example.dda_v1
 
+import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Email
+import androidx.compose.material.icons.filled.Lock
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.alpha
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.input.VisualTransformation
-//import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.navigation.NavController
@@ -28,67 +34,68 @@ fun LoginScreen(navController: NavController) {
     var errorMessage by remember { mutableStateOf("") }
     var isLoading by remember { mutableStateOf(false) }
 
+    // --- Background Gradient (softer tones) ---
     Box(
         modifier = Modifier
             .fillMaxSize()
             .background(
                 brush = Brush.verticalGradient(
-                    colors = listOf(
-                        Color(0xFF580267),
-                        Color(0xFF750128)
+                    listOf(
+                        Color(0xFF121C84),
+                        Color(0xFF662D91),
+                        Color(0xFFB8177E)
                     )
                 )
-            )
+            ),
+        contentAlignment = Alignment.Center
     ) {
         Column(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(24.dp),
             horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.Center
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 20.dp)
         ) {
-            // App Title
             Text(
                 text = "DDA Rental App",
-                fontSize = 32.sp,
-                fontWeight = FontWeight.Bold,
                 color = Color.White,
-                modifier = Modifier.padding(bottom = 8.dp)
+                fontSize = 34.sp,
+                fontWeight = FontWeight.ExtraBold,
+                modifier = Modifier
+                    .padding(bottom = 6.dp)
+                    .alpha(0.95f)
             )
-
             Text(
-                text = "Welcome Back!",
-                fontSize = 18.sp,
-                color = Color.White.copy(alpha = 0.9f),
-                modifier = Modifier.padding(bottom = 48.dp)
+                text = "Find your perfect home effortlessly",
+                color = Color.White.copy(alpha = 0.85f),
+                fontSize = 16.sp,
+                modifier = Modifier.padding(bottom = 40.dp)
             )
 
-            // Login Card
+            // --- Refined Card (White Tint + Shadow) ---
             Card(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(horizontal = 16.dp),
-                shape = RoundedCornerShape(24.dp),
+                    .shadow(12.dp, RoundedCornerShape(28.dp)),
+                shape = RoundedCornerShape(28.dp),
                 colors = CardDefaults.cardColors(
-                    containerColor = Color.White
+                    containerColor = Color.White.copy(alpha = 0.9f)
                 ),
-                elevation = CardDefaults.cardElevation(8.dp)
+                elevation = CardDefaults.cardElevation(10.dp)
             ) {
                 Column(
                     modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(24.dp),
+                        .padding(horizontal = 24.dp, vertical = 32.dp),
                     horizontalAlignment = Alignment.CenterHorizontally,
-                    verticalArrangement = Arrangement.spacedBy(16.dp)
+                    verticalArrangement = Arrangement.spacedBy(20.dp)
                 ) {
                     Text(
-                        text = "Login",
-                        fontSize = 24.sp,
-                        fontWeight = FontWeight.Bold,
-                        color = Color(0xFF05156C)
+                        text = "Welcome Back!",
+                        color = Color(0xFF2E186A),
+                        fontSize = 26.sp,
+                        fontWeight = FontWeight.Bold
                     )
 
-                    // Email Field
+                    // --- Email Field ---
                     OutlinedTextField(
                         value = email,
                         onValueChange = {
@@ -96,19 +103,24 @@ fun LoginScreen(navController: NavController) {
                             errorMessage = ""
                         },
                         label = { Text("Email") },
-                        modifier = Modifier.fillMaxWidth(),
+                        leadingIcon = {
+                            Icon(
+                                imageVector = Icons.Default.Email,
+                                contentDescription = null,
+                                tint = Color(0xFF4B0082)
+                            )
+                        },
                         singleLine = true,
-                        keyboardOptions = KeyboardOptions(
-                            keyboardType = KeyboardType.Email
-                        ),
-                        enabled = !isLoading,
+                        modifier = Modifier.fillMaxWidth(),
                         colors = OutlinedTextFieldDefaults.colors(
-                            focusedBorderColor = Color(0xFF6200EE),
-                            focusedLabelColor = Color(0xFF6200EE)
-                        )
+                            focusedBorderColor = Color(0xFF4B0082),
+                            focusedLabelColor = Color(0xFF4B0082)
+                        ),
+                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Email),
+                        enabled = !isLoading
                     )
 
-                    // Password Field
+                    // --- Password Field ---
                     OutlinedTextField(
                         value = password,
                         onValueChange = {
@@ -116,35 +128,38 @@ fun LoginScreen(navController: NavController) {
                             errorMessage = ""
                         },
                         label = { Text("Password") },
-                        modifier = Modifier.fillMaxWidth(),
+                        leadingIcon = {
+                            Icon(
+                                imageVector = Icons.Default.Lock,
+                                contentDescription = null,
+                                tint = Color(0xFF4B0082)
+                            )
+                        },
                         singleLine = true,
+                        modifier = Modifier.fillMaxWidth(),
                         visualTransformation = if (passwordVisible)
                             VisualTransformation.None
                         else
                             PasswordVisualTransformation(),
-                        keyboardOptions = KeyboardOptions(
-                            keyboardType = KeyboardType.Password
-                        ),
-                        enabled = !isLoading,
+                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password),
                         colors = OutlinedTextFieldDefaults.colors(
-                            focusedBorderColor = Color(0xFF6200EE),
-                            focusedLabelColor = Color(0xFF6200EE)
-                        )
+                            focusedBorderColor = Color(0xFF4B0082),
+                            focusedLabelColor = Color(0xFF4B0082)
+                        ),
+                        enabled = !isLoading
                     )
 
-                    // Error Message
-                    if (errorMessage.isNotEmpty()) {
+                    AnimatedVisibility(visible = errorMessage.isNotEmpty()) {
                         Text(
                             text = errorMessage,
                             color = Color.Red,
                             fontSize = 14.sp,
-                            modifier = Modifier.fillMaxWidth()
+                            modifier = Modifier.fillMaxWidth(),
+                            fontWeight = FontWeight.Medium
                         )
                     }
 
-                    Spacer(modifier = Modifier.height(8.dp))
-
-                    // Login Button
+                    // --- Modern Gradient Button ---
                     Button(
                         onClick = {
                             if (email.isEmpty() || password.isEmpty()) {
@@ -152,12 +167,8 @@ fun LoginScreen(navController: NavController) {
                             } else if (!email.contains("@")) {
                                 errorMessage = "Please enter a valid email"
                             } else {
-                                // Firebase Authentication
                                 isLoading = true
                                 val auth = FirebaseAuth.getInstance()
-                                println("Attempting login for: $email")
-
-
                                 val adminEmail = "admin@dda.com"
                                 val adminPassword = "admin123"
 
@@ -175,70 +186,65 @@ fun LoginScreen(navController: NavController) {
                                                 }
                                             }
                                         } else {
-                                            val error = task.exception?.message
+                                            errorMessage = task.exception?.message
                                                 ?: "Login failed. Please try again."
-                                            println("Login failed: $error")
-                                            errorMessage = error
                                         }
                                     }
-
-//                                auth.signInWithEmailAndPassword(email, password)
-//                                    .addOnCompleteListener { task ->
-//                                        isLoading = false
-//                                        if (task.isSuccessful) {
-//                                            println("Login successful for: $email")
-//                                            navController.navigate("home") {
-//                                                popUpTo("login") { inclusive = true }
-//                                            }
-//                                        } else {
-//                                            val error = task.exception?.message
-//                                                ?: "Login failed. Please try again."
-//                                            println("Login failed: $error")
-//                                            errorMessage = error
-//                                        }
-//                                    }
                             }
                         },
                         modifier = Modifier
                             .fillMaxWidth()
-                            .height(56.dp),
-                        enabled = !isLoading,
-                        colors = ButtonDefaults.buttonColors(
-                            containerColor = Color(0xFF19A6E5)
-                        ),
-                        shape = RoundedCornerShape(12.dp)
+                            .height(54.dp),
+                        shape = RoundedCornerShape(50),
+                        colors = ButtonDefaults.buttonColors(containerColor = Color.Transparent),
+                        contentPadding = PaddingValues()
                     ) {
-                        if (isLoading) {
-                            CircularProgressIndicator(
-                                color = Color.White,
-                                modifier = Modifier.size(24.dp)
-                            )
-                        } else {
-                            Text(
-                                text = "Login",
-                                fontSize = 18.sp,
-                                fontWeight = FontWeight.Bold
-                            )
+                        Box(
+                            modifier = Modifier
+                                .fillMaxSize()
+                                .background(
+                                    brush = Brush.horizontalGradient(
+                                        listOf(Color(0xFF4B0082), Color(0xFF673AB7))
+                                    ),
+                                    shape = RoundedCornerShape(50)
+                                ),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            if (isLoading) {
+                                CircularProgressIndicator(
+                                    color = Color.White,
+                                    modifier = Modifier.size(24.dp)
+                                )
+                            } else {
+                                Text(
+                                    text = "Login",
+                                    color = Color.White,
+                                    fontSize = 18.sp,
+                                    fontWeight = FontWeight.Bold
+                                )
+                            }
                         }
                     }
 
-                    Spacer(modifier = Modifier.height(8.dp))
-
-                    // Signup Button
                     TextButton(
-                        onClick = {
-                            navController.navigate("signup")
-                        },
+                        onClick = { navController.navigate("signup") },
                         modifier = Modifier.fillMaxWidth()
                     ) {
                         Text(
                             text = "Don't have an account? Sign Up",
-                            color = Color(0xFF03136E),
+                            color = Color(0xFF4B0082),
                             fontSize = 16.sp
                         )
                     }
                 }
             }
+
+            Spacer(modifier = Modifier.height(24.dp))
+            Text(
+                text = "© 2025 SAN Developers",
+                color = Color.White.copy(alpha = 0.6f),
+                fontSize = 12.sp
+            )
         }
     }
 }
