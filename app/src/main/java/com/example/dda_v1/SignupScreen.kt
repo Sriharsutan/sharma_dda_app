@@ -21,10 +21,13 @@ import androidx.compose.ui.unit.sp
 import androidx.navigation.NavController
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.auth.UserProfileChangeRequest
+import com.google.firebase.firestore.ktx.firestore
+import com.google.firebase.ktx.Firebase
 
 @Composable
 fun SignupScreen(navController: NavController) {
     var username by remember { mutableStateOf("") }
+    var mobileno by remember { mutableStateOf("") }
     var email by remember { mutableStateOf("") }
     var password by remember { mutableStateOf("") }
     var confirmPassword by remember { mutableStateOf("") }
@@ -103,6 +106,23 @@ fun SignupScreen(navController: NavController) {
                             errorMessage = ""
                         },
                         label = { Text("Username") },
+                        modifier = Modifier.fillMaxWidth(),
+                        singleLine = true,
+                        enabled = !isLoading,
+                        colors = OutlinedTextFieldDefaults.colors(
+                            focusedBorderColor = Color(0xFF6200EE),
+                            focusedLabelColor = Color(0xFF6200EE)
+                        )
+                    )
+
+                    // Phone number Field
+                    OutlinedTextField(
+                        value = mobileno,
+                        onValueChange = {
+                            mobileno = it
+                            errorMessage = ""
+                        },
+                        label = { Text("Phone Number") },
                         modifier = Modifier.fillMaxWidth(),
                         singleLine = true,
                         enabled = !isLoading,
@@ -220,6 +240,26 @@ fun SignupScreen(navController: NavController) {
                                     val auth = FirebaseAuth.getInstance()
                                     auth.createUserWithEmailAndPassword(email, password)
                                         .addOnCompleteListener { task ->
+//                                            if (task.isSuccessful) {
+//                                                val user = auth.currentUser
+//                                                val profileUpdates = UserProfileChangeRequest.Builder()
+//                                                    .setDisplayName(username)
+//                                                    .build()
+//
+//                                                user?.updateProfile(profileUpdates)
+//                                                    ?.addOnCompleteListener { profileTask ->
+//                                                        isLoading = false
+//                                                        if (profileTask.isSuccessful) {
+//                                                            showSuccessDialog = true
+//                                                        } else {
+//                                                            showSuccessDialog = true
+//                                                        }
+//                                                    }
+//                                            } else {
+//                                                isLoading = false
+//                                                errorMessage = task.exception?.message
+//                                                    ?: "Signup failed. Please try again."
+//                                            }
                                             if (task.isSuccessful) {
                                                 val user = auth.currentUser
                                                 val profileUpdates = UserProfileChangeRequest.Builder()
@@ -229,10 +269,29 @@ fun SignupScreen(navController: NavController) {
                                                 user?.updateProfile(profileUpdates)
                                                     ?.addOnCompleteListener { profileTask ->
                                                         isLoading = false
+
                                                         if (profileTask.isSuccessful) {
-                                                            showSuccessDialog = true
+                                                            // Store user details in Firestore
+                                                            val db = Firebase.firestore
+                                                            val userData = hashMapOf(
+                                                                "username" to username,
+                                                                "phone_number" to mobileno,
+                                                                "email" to email
+                                                            )
+
+                                                            // Use user UID as document ID
+                                                            db.collection("user_details")
+                                                                .document(user!!.uid)
+                                                                .set(userData)
+                                                                .addOnSuccessListener {
+                                                                    showSuccessDialog = true
+                                                                }
+                                                                .addOnFailureListener { e ->
+                                                                    errorMessage = "Signup succeeded but failed to save details: ${e.message}"
+                                                                }
+
                                                         } else {
-                                                            showSuccessDialog = true
+                                                            errorMessage = "Profile update failed."
                                                         }
                                                     }
                                             } else {
@@ -240,6 +299,7 @@ fun SignupScreen(navController: NavController) {
                                                 errorMessage = task.exception?.message
                                                     ?: "Signup failed. Please try again."
                                             }
+
                                         }
 
                                 }
