@@ -83,42 +83,16 @@ fun AdminDashboardScreen(navController: NavController) {
             ) {
                 navController.navigate("view_forms")
             }
-//
-//            // Conveyance & Deed Forms Button
-//            GradientButton(
-//                emoji = "📁",
-//                text = "Conveyance & Deed Forms",
-//                colors = listOf(Color(0xFF11998e), Color(0xFF38ef7d))
-//            ) {
-//                navController.navigate("view_conveyance_forms")
-//            }
-//
-//            // Possession & NOC Forms Button
-//            GradientButton(
-//                emoji = "📄",
-//                text = "Possession Letter & NOC Forms",
-//                colors = listOf(Color(0xFF00c6ff), Color(0xFF0072ff))
-//            ) {
-//                navController.navigate("view_possession_forms")
-//            }
-//
-//            // Salaried Forms Button
-//            GradientButton(
-//                emoji = "💰",
-//                text = "Salaried Forms",
-//                colors = listOf(Color(0xFFf7971e), Color(0xFFffd200))
-//            ) {
-//                navController.navigate("view_salaried_forms")
-//            }
-//
-//            // Business / Self-Employed Forms Button
-//            GradientButton(
-//                emoji = "🏢",
-//                text = "Self-Employeed/Business Forms",
-//                colors = listOf(Color(0xFF56ab2f), Color(0xFFa8e063))
-//            ) {
-//                navController.navigate("view_business_forms")
-//            }
+
+            // View All User Details
+            GradientButton(
+                emoji = "👤",
+                        text = "View all Users",
+                colors = listOf(Color(0xFF667eea), Color(0xFF38ef7d))
+            ) {
+                navController.navigate("view_all_users")
+            }
+
             // View All Forms (Tabbed)
             GradientButton(
                 emoji = "🗂️",
