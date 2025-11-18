@@ -29,6 +29,10 @@ import com.google.accompanist.pager.*
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.pager.HorizontalPager
 import androidx.compose.foundation.pager.rememberPagerState
+import com.google.firebase.auth.FirebaseAuth
+import com.google.firebase.firestore.ktx.firestore
+import com.google.firebase.ktx.Firebase
+import kotlinx.coroutines.tasks.await
 
 import kotlinx.coroutines.delay
 
@@ -65,12 +69,8 @@ fun RentalApp() {
         // Admin routes
         composable("admin_dashboard") { AdminDashboardScreen(navController) }
         composable("view_forms") { ViewFormsScreen(navController) }
+        composable("view_all_users") {ViewAllUsersScreen(navController)}
         composable("view_all_forms") { AllFormsTabbedScreen(navController) }
-
-//        composable("view_conveyance_forms") {ConveyanceFormsViewScreen(navController)}
-//        composable("view_possession_forms") { PossessionFormsViewScreen(navController) }
-//        composable("view_salaried_forms") { SalariedFormsViewScreen(navController) }
-//        composable("view_business_forms") { BusinessFormsViewScreen(navController) }
         composable("view_conveyance_forms") {
             FormsViewScreen(
                 navController,
@@ -107,37 +107,56 @@ fun RentalApp() {
             )
         }
     }
-
-//    NavHost(navController = navController, startDestination = "login") {
-//        composable("login") { LoginScreen(navController) }
-//        composable("signup") { SignupScreen(navController) }
-//        composable("home") { HomeScreen(navController) }
-//        composable("rentals_available") {RentalListScreen(navController)}
-//        //composable("rentals_available") { DummyScreen("Rentals Available") }
-//        composable("rentals_to_do") { DummyScreen("Rentals To Do") }
-//        composable("form") { FormScreen(navController) }
-//        composable("documentation") { DummyScreen("Documentation") }
-//    }
-
 }
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun HomeScreen(navController: NavController) {
+    val auth = FirebaseAuth.getInstance()
+    val db = Firebase.firestore
+
+    var username by remember { mutableStateOf("User") } // Default placeholder
+    val userId = auth.currentUser?.uid
+
+    // 🔹 Load username from Firebase Firestore (user_details collection)
+    LaunchedEffect(userId) {
+        if (userId != null) {
+            try {
+                val snapshot = db.collection("user_details").document(userId).get().await()
+                val name = snapshot.getString("username")
+                if (!name.isNullOrEmpty()) {
+                    username = name
+                } else {
+                    // fallback to Firebase Auth display name
+                    username = auth.currentUser?.displayName ?: "User"
+                }
+            } catch (e: Exception) {
+                username = auth.currentUser?.displayName ?: "User"
+            }
+        }
+    }
+
     Column(
         modifier = Modifier
             .fillMaxSize()
             .background(Color(0xFFF5F5F5))
     ) {
-        // Top App Bar
+        // 🔹 Top App Bar with personalized greeting
         TopAppBar(
-            title = { Text("Rental Management", fontWeight = FontWeight.Bold) },
+            title = {
+                Text(
+                    text = "Hi, $username",
+                    fontWeight = FontWeight.Bold,
+                    fontSize = 20.sp
+                )
+            },
             colors = TopAppBarDefaults.topAppBarColors(
                 containerColor = Color(0xFF4106AB),
                 titleContentColor = Color.White
             )
         )
 
+        // Main content
         Column(
             modifier = Modifier
                 .fillMaxSize()
@@ -245,84 +264,6 @@ fun ImageCarousel() {
         }
     }
 }
-
-//@OptIn(ExperimentalPagerApi::class)
-//@Composable
-//fun ImageCarousel() {
-//    val pagerState = rememberPagerState()
-//
-//    // Auto-scroll effect
-//    LaunchedEffect(Unit) {
-//        while (true) {
-//            delay(3000)
-//            val nextPage = (pagerState.currentPage + 1) % 2
-//            pagerState.animateScrollToPage(nextPage)
-//        }
-//    }
-//
-//    Column {
-//        Box(
-//            modifier = Modifier
-//                .fillMaxWidth()
-//                .height(200.dp)
-//        ) {
-//            HorizontalPager(
-//                count = 2,
-//                state = pagerState,
-//                modifier = Modifier.fillMaxSize()
-//            ) { page ->
-//                Card(
-//                    modifier = Modifier
-//                        .fillMaxSize()
-//                        .padding(8.dp),
-//                    shape = RoundedCornerShape(12.dp),
-//                    elevation = CardDefaults.cardElevation(4.dp)
-//                ) {
-//                    // Replace with your actual images
-//                    // Method 1: Using actual image resources
-//                    Image(
-//                        painter = painterResource(
-//                            id = if (page == 0) R.drawable.image1
-//                            else R.drawable.image2
-//                        ),
-//                        contentDescription = "Carousel Image ${page + 1}",
-//                        modifier = Modifier.fillMaxSize(),
-//                        contentScale = ContentScale.Crop
-//                    )
-//
-//                    // Method 2: Keep placeholder boxes (comment out above and uncomment below)
-//                    /*
-//                    Box(
-//                        modifier = Modifier
-//                            .fillMaxSize()
-//                            .background(
-//                                if (page == 0) Color(0xFF4CAF50) else Color(0xFF2196F3)
-//                            ),
-//                        contentAlignment = Alignment.Center
-//                    ) {
-//                        Text(
-//                            text = "Image ${page + 1}",
-//                            fontSize = 24.sp,
-//                            fontWeight = FontWeight.Bold,
-//                            color = Color.White
-//                        )
-//                    }
-//                    */
-//                }
-//            }
-//        }
-//
-//        // Dots indicator
-//        HorizontalPagerIndicator(
-//            pagerState = pagerState,
-//            modifier = Modifier
-//                .align(Alignment.CenterHorizontally)
-//                .padding(top = 8.dp),
-//            activeColor = Color(0xFF6200EE),
-//            inactiveColor = Color.LightGray
-//        )
-//    }
-//}
 
 @Composable
 fun MenuBox(
