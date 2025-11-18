@@ -44,7 +44,8 @@ fun PossessionLetterNocFormScreen(navController: NavController) {
         "Copy of Loan Sanction Letter (Attested by Bank)",
         "Copy of Bank Statement (Name, Address, Amount)",
         "Copy of Challans of All Payments to DDA",
-        "Specimen Signature with Photo and 3 Signatures"
+        "Specimen Signature",
+        "Specimen Photo"
     )
 
     val optionalDocs = listOf(
