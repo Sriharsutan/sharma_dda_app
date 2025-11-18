@@ -49,13 +49,16 @@ fun ConveyanceDeedFormScreen(navController: NavController) {
         "Registration Fee Receipt",
         "Registration Appointment Proof",
         "Three CD Paper on Green Paper",
-        "3 Passport Size Photos",
+        "Passport Size Photo",
         "Processing Fee (DDA Challan ₹200)",
-        "Aadhaar & PAN Card of Alottee/Co-Alottee",
-        "2 Witness Aadhaar Cards",
+        "Aadhaar Card of Alottee/Co-Alottee",
+        "PAN Card of Alottee/Co-Alottee",
+        "Witness 1 Aadhaar Cards",
+        "Witness 2 Aadhaar Cards",
         "NOC from Spouse",
         "Mortgage Affidavit (Loan)",
-        "Banker’s ID Proof + Authority Letter"
+        "Banker’s ID Proof",
+        "Authority Letter"
     )
 
     // ✅ Safe immutable initialization (Compose-friendly)
