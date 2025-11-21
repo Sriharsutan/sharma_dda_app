@@ -18,45 +18,47 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
-import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.navigation.NavController
+import coil.compose.AsyncImage
 import com.google.accompanist.pager.*
-import kotlinx.coroutines.delay
+import com.google.firebase.firestore.FirebaseFirestore
 
-data class Rental(
-    val title: String,
-    val address: String,
-    val images: List<Int>,
-    val rent: String,
-    val furnishing: String,
-    val area: String
-)
+//data class Rental(
+//    val title: String = "",
+//    val address: String = "",
+//    val images: List<String> = emptyList(),
+//    val rent: String = "",
+//    val furnishing: String = "",
+//    val area: String = ""
+//)
 
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalPagerApi::class)
 @Composable
 fun RentalListScreen(navController: NavController) {
-    val rentals = listOf(
-        Rental(
-            "3 BHK Flat in Indiranagar for Rent",
-            "13th E Main HAL 2nd Stage, Indiranagar, Bangalore",
-            listOf(R.drawable.image1, R.drawable.image2, R.drawable.image1),
-            "₹ 56,000",
-            "Semi furnished",
-            "2,020 Sq.Ft."
-        ),
-        Rental(
-            "2 BHK Flat in Whitefield for Rent",
-            "Nallurhalli Main Road, Whitefield, Bangalore",
-            listOf(R.drawable.image2, R.drawable.image1),
-            "₹ 42,000",
-            "Fully furnished",
-            "1,500 Sq.Ft."
-        )
-    )
+
+    val db = FirebaseFirestore.getInstance()
+    var rentals by remember { mutableStateOf<List<Rental>>(emptyList()) }
+
+    // Live listener for Firestore rentals
+    LaunchedEffect(true) {
+        db.collection("rentals").addSnapshotListener { value, _ ->
+            val list = value?.documents?.map { doc ->
+                Rental(
+                    title = doc.getString("title") ?: "",
+                    address = doc.getString("address") ?: "",
+                    rent = doc.getString("rent") ?: "",
+                    furnishing = doc.getString("furnishing") ?: "",
+                    area = doc.getString("area") ?: "",
+                    images = doc.get("images") as? List<String> ?: emptyList()
+                )
+            } ?: emptyList()
+            rentals = list
+        }
+    }
 
     Scaffold(
         topBar = {
@@ -141,49 +143,61 @@ fun RentalCard(rental: Rental) {
                 }
             }
 
-            // Image carousel
-            Box(modifier = Modifier.height(180.dp)) {
-                HorizontalPager(
-                    count = rental.images.size,
-                    state = pagerState,
-                    modifier = Modifier.fillMaxSize()
-                ) { page ->
-                    Image(
-                        painter = painterResource(id = rental.images[page]),
-                        contentDescription = null,
+            // Image carousel using Coil
+            Box(modifier = Modifier.height(200.dp)) {
+                if (rental.images.isNotEmpty()) {
+                    HorizontalPager(
+                        count = rental.images.size,
+                        state = pagerState,
+                        modifier = Modifier.fillMaxSize()
+                    ) { page ->
+                        AsyncImage(
+                            model = rental.images[page],
+                            contentDescription = null,
+                            modifier = Modifier
+                                .fillMaxSize()
+                                .clip(RoundedCornerShape(12.dp)),
+                            contentScale = ContentScale.Crop
+                        )
+                    }
+
+                    // Viewer overlay
+                    Box(
+                        modifier = Modifier
+                            .align(Alignment.TopStart)
+                            .background(
+                                color = Color.Black.copy(alpha = 0.6f),
+                                shape = RoundedCornerShape(bottomEnd = 8.dp)
+                            )
+                            .padding(horizontal = 8.dp, vertical = 4.dp)
+                    ) {
+                        Text(
+                            text = "⚡ $viewers people viewing now",
+                            color = Color.White,
+                            fontSize = 12.sp
+                        )
+                    }
+
+                    // Page indicator
+                    HorizontalPagerIndicator(
+                        pagerState = pagerState,
+                        modifier = Modifier
+                            .align(Alignment.BottomCenter)
+                            .padding(8.dp),
+                        activeColor = Color.White,
+                        inactiveColor = Color.LightGray
+                    )
+                } else {
+                    // If no images
+                    Box(
                         modifier = Modifier
                             .fillMaxSize()
-                            .clip(RoundedCornerShape(12.dp)),
-                        contentScale = ContentScale.Crop
-                    )
+                            .background(Color.LightGray),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Text("No Images", color = Color.White)
+                    }
                 }
-
-                // Viewer overlay
-                Box(
-                    modifier = Modifier
-                        .align(Alignment.TopStart)
-                        .background(
-                            color = Color.Black.copy(alpha = 0.6f),
-                            shape = RoundedCornerShape(bottomEnd = 8.dp)
-                        )
-                        .padding(horizontal = 8.dp, vertical = 4.dp)
-                ) {
-                    Text(
-                        text = "⚡ $viewers people viewing this property now",
-                        color = Color.White,
-                        fontSize = 12.sp
-                    )
-                }
-
-                // Page indicator
-                HorizontalPagerIndicator(
-                    pagerState = pagerState,
-                    modifier = Modifier
-                        .align(Alignment.BottomCenter)
-                        .padding(8.dp),
-                    activeColor = Color.White,
-                    inactiveColor = Color.LightGray
-                )
             }
 
             Spacer(modifier = Modifier.height(8.dp))
@@ -193,7 +207,7 @@ fun RentalCard(rental: Rental) {
                 horizontalArrangement = Arrangement.SpaceBetween,
                 modifier = Modifier.fillMaxWidth()
             ) {
-                                Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                Column(horizontalAlignment = Alignment.CenterHorizontally) {
                     Text(rental.furnishing, fontWeight = FontWeight.Bold)
                     Text("Type", color = Color.Gray, fontSize = 13.sp)
                 }
