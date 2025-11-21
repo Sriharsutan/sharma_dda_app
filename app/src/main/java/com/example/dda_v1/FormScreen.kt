@@ -65,9 +65,19 @@ fun FormScreen(navController: NavController) {
     var districtExpanded by remember { mutableStateOf(false) }
 
     // Dropdown options
-    val bankList = listOf("State Bank of India", "Bank of Baroda", "HDFC Bank", "ICICI Bank", "Punjab National Bank", "Axis Bank")
-    val stateList = listOf("Delhi", "Maharashtra", "Karnataka", "Tamil Nadu", "Gujarat", "Rajasthan")
-    val districtList = listOf("North", "South", "East", "West", "North West", "North East", "South West", "South East", "Central")
+    val bankList = listOf("Allahabad Bank", "Andhra Bank", "AU Small Finance Bank", "Axis Bank", "Bank of Baroda", "Bank of India", "Bank of Maharashtra", "Canara Bank", "Central Bank of India", "City Union Bank", "Corporation Bank", "Deutsche Bank", "Development Credit Bank", "Dhanlaxmi Bank", "Federal Bank", "HDFC Bank", "ICICI Bank", "IDBI Bank", "IDFC FIRST Bank", "Indian Bank", "Indian Overseas Bank", "IndusInd Bank", "ING Vysya Bank", "Jammu and Kashmir Bank", "Karnataka Bank Ltd", "Karur Vysya Bank", "Kotak Mahindra Bank", "Laxmi Vilas Bank", "Oriental Bank of Commerce", "Punjab & Sind Bank", "Punjab National Bank", "Shamrao Vitthal Co-operative Bank", "South Indian Bank", "Standard Chartered Bank", "State Bank of India", "Syndicate Bank", "Tamilnad Mercantile Bank Ltd", "The Delhi State Co Operative Banks", "The Kangra Coop Bank Ltd", "UCO Bank", "Union Bank of India")
+
+    val stateList = listOf("Andhra Pradesh", "Arunachal Pradesh", "Assam", "Bihar", "Chhattisgarh", "Goa", "Gujarat", "Haryana", "Himachal Pradesh", "Jharkhand", "Karnataka", "Kerala", "Madhya Pradesh", "Maharashtra", "Manipur", "Meghalaya", "Mizoram", "Nagaland", "Odisha", "Punjab", "Rajasthan", "Sikkim", "Tamil Nadu", "Telangana", "Tripura", "Uttar Pradesh", "Uttarakhand", "West Bengal")
+
+    val districtMap = mapOf(
+        "Delhi" to listOf("Central Delhi", "East Delhi", "New Delhi", "North Delhi", "North East Delhi", "North West Delhi", "Shahdara", "South Delhi", "South East Delhi", "South West Delhi", "West Delhi"),
+        "Maharashtra" to listOf("Mumbai", "Mumbai Suburban", "Pune", "Nagpur", "Thane", "Nashik", "Aurangabad", "Solapur", "Amravati", "Kolhapur", "Sangli", "Satara"),
+        "Karnataka" to listOf("Bengaluru Urban", "Bengaluru Rural", "Mysuru", "Mangaluru", "Belagavi", "Ballari", "Davangere", "Hubballi", "Tumakuru", "Vijayapura"),
+        "Tamil Nadu" to listOf("Chennai", "Coimbatore", "Madurai", "Salem", "Tiruchirappalli", "Tirunelveli", "Vellore", "Erode"),
+        "Gujarat" to listOf("Ahmedabad", "Surat", "Vadodara", "Rajkot", "Bhavnagar", "Jamnagar", "Junagadh"),
+        "Rajasthan" to listOf("Jaipur", "Jodhpur", "Udaipur", "Kota", "Ajmer", "Bikaner", "Alwar", "Sikar"),
+    )
+
 
     // Document upload states
     var aadhaarUri by remember { mutableStateOf<Uri?>(null) }
@@ -177,15 +187,35 @@ fun FormScreen(navController: NavController) {
             FormTextField(value = addressStreet, onValueChange = { addressStreet = it }, label = "Street")
             FormTextField(value = addressArea, onValueChange = { addressArea = it }, label = "Area/Sector")
 
+//            DropdownField(
+//                value = addressState,
+//                label = "State",
+//                options = stateList,
+//                expanded = stateExpanded,
+//                onExpandedChange = { stateExpanded = it },
+//                onOptionSelected = { addressState = it }
+//            )
+//
+//            DropdownField(
+//                value = addressDistrict,
+//                label = "District",
+//                options = districtList,
+//                expanded = districtExpanded,
+//                onExpandedChange = { districtExpanded = it },
+//                onOptionSelected = { addressDistrict = it }
+//            )
             DropdownField(
                 value = addressState,
                 label = "State",
                 options = stateList,
                 expanded = stateExpanded,
                 onExpandedChange = { stateExpanded = it },
-                onOptionSelected = { addressState = it }
+                onOptionSelected = {
+                    addressState = it
+                    addressDistrict = ""            // clear district when state changes
+                }
             )
-
+            val districtList = districtMap[addressState] ?: emptyList()
             DropdownField(
                 value = addressDistrict,
                 label = "District",
@@ -199,11 +229,11 @@ fun FormScreen(navController: NavController) {
 
             RadioButtonGroup(
                 label = "Region",
-                options = listOf("1", "2", "3", "4"),
+                options = listOf("Delhi", "Outside Delhi"),
                 selectedOption = region,
                 onOptionSelected = { region = it },
                 modifier = Modifier.padding(top = 16.dp),
-                displayPrefix = "Region "
+                displayPrefix = " "
             )
 
             // Document Upload Section
