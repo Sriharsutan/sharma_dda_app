@@ -49,6 +49,16 @@ class MainActivity : ComponentActivity() {
     }
 }
 
+data class Rental(
+    val id: String = "",
+    val title: String = "",
+    val address: String = "",
+    val images: List<String> = emptyList(),
+    val rent: String = "",
+    val furnishing: String = "",
+    val area: String = ""
+)
+
 // 🌈 Navigation Host
 @Composable
 fun RentalApp() {
@@ -71,6 +81,8 @@ fun RentalApp() {
         composable("view_forms") { ViewFormsScreen(navController) }
         composable("view_all_users") { ViewAllUsersScreen(navController) }
         composable("view_all_forms") { AllFormsTabbedScreen(navController) }
+        composable("upload_rental") { UploadRentalScreen(navController)}
+        composable("manage_rentals") {ManageRentalsScreen(navController)}
     }
 }
 
@@ -219,7 +231,7 @@ fun MenuGrid(navController: NavController) {
         GlassMenuBox("🏠 Rentals Available") { navController.navigate("rentals_available") }
         GlassMenuBox("📄 Documentation") { navController.navigate("documentation") }
         GlassMenuBox("📝 Application Form") { navController.navigate("form") }
-        GlassMenuBox("📋 Rentals To Do") { navController.navigate("rentals_to_do") }
+        //GlassMenuBox("📋 Rentals To Do") { navController.navigate("rentals_to_do") }
     }
 }
 
