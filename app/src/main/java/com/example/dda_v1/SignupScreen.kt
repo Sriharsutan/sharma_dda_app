@@ -23,6 +23,7 @@ import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.auth.UserProfileChangeRequest
 import com.google.firebase.firestore.ktx.firestore
 import com.google.firebase.ktx.Firebase
+import com.google.firebase.firestore.FieldValue
 
 @Composable
 fun SignupScreen(navController: NavController) {
@@ -230,8 +231,6 @@ fun SignupScreen(navController: NavController) {
                                     errorMessage = "Passwords do not match"
                                 }
                                 else -> {
-                                    // TODO: Replace with Firebase Authentication
-                                    // Temporary: Show success dialog for testing
                                     println("Signup - Username: $username, Email: $email")
                                     showSuccessDialog = true
 
@@ -240,26 +239,6 @@ fun SignupScreen(navController: NavController) {
                                     val auth = FirebaseAuth.getInstance()
                                     auth.createUserWithEmailAndPassword(email, password)
                                         .addOnCompleteListener { task ->
-//                                            if (task.isSuccessful) {
-//                                                val user = auth.currentUser
-//                                                val profileUpdates = UserProfileChangeRequest.Builder()
-//                                                    .setDisplayName(username)
-//                                                    .build()
-//
-//                                                user?.updateProfile(profileUpdates)
-//                                                    ?.addOnCompleteListener { profileTask ->
-//                                                        isLoading = false
-//                                                        if (profileTask.isSuccessful) {
-//                                                            showSuccessDialog = true
-//                                                        } else {
-//                                                            showSuccessDialog = true
-//                                                        }
-//                                                    }
-//                                            } else {
-//                                                isLoading = false
-//                                                errorMessage = task.exception?.message
-//                                                    ?: "Signup failed. Please try again."
-//                                            }
                                             if (task.isSuccessful) {
                                                 val user = auth.currentUser
                                                 val profileUpdates = UserProfileChangeRequest.Builder()
@@ -271,23 +250,29 @@ fun SignupScreen(navController: NavController) {
                                                         isLoading = false
 
                                                         if (profileTask.isSuccessful) {
-                                                            // Store user details in Firestore
-                                                            val db = Firebase.firestore
-                                                            val userData = hashMapOf(
-                                                                "username" to username,
-                                                                "phone_number" to mobileno,
-                                                                "email" to email
-                                                            )
 
-                                                            // Use user UID as document ID
-                                                            db.collection("user_details")
-                                                                .document(user!!.uid)
-                                                                .set(userData)
+                                                            // 🔹 SEND VERIFICATION EMAIL
+                                                            user.sendEmailVerification()
                                                                 .addOnSuccessListener {
-                                                                    showSuccessDialog = true
+                                                                    // Store user details in Firestore
+                                                                    val db = Firebase.firestore
+                                                                    val userData = hashMapOf(
+                                                                        "username" to username,
+                                                                        "phone_number" to mobileno,
+                                                                        "email" to email,
+                                                                        "timestamp" to FieldValue.serverTimestamp()
+                                                                    )
+
+                                                                    db.collection("user_details")
+                                                                        .document(user.uid)
+                                                                        .set(userData)
+                                                                        .addOnSuccessListener {
+                                                                            FirebaseAuth.getInstance().signOut() //  logout
+                                                                            showSuccessDialog = true
+                                                                        }
                                                                 }
-                                                                .addOnFailureListener { e ->
-                                                                    errorMessage = "Signup succeeded but failed to save details: ${e.message}"
+                                                                .addOnFailureListener {
+                                                                    errorMessage = "Failed to send verification email."
                                                                 }
 
                                                         } else {
@@ -299,9 +284,7 @@ fun SignupScreen(navController: NavController) {
                                                 errorMessage = task.exception?.message
                                                     ?: "Signup failed. Please try again."
                                             }
-
                                         }
-
                                 }
                             }
                         },
@@ -360,8 +343,12 @@ fun SignupScreen(navController: NavController) {
                 )
             },
             text = {
-                Text("Account created successfully! Please login to continue.")
+                Text("Account created! Please verify your email before logging in. Check the spam in gmail for verification link.")
             },
+//            text = {
+//                Text("Account created successfully! Please login to continue.")
+//            },
+
             confirmButton = {
                 Button(
                     onClick = {

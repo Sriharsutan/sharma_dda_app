@@ -1,5 +1,8 @@
 package com.example.dda_v1
 
+import android.net.Uri
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material3.*
@@ -10,10 +13,9 @@ import androidx.compose.ui.unit.dp
 import androidx.navigation.NavController
 import com.google.firebase.firestore.FirebaseFirestore
 import com.google.firebase.storage.FirebaseStorage
-import android.net.Uri
 
-@Composable
 @OptIn(ExperimentalMaterial3Api::class)
+@Composable
 fun UploadRentalScreen(navController: NavController) {
 
     var title by remember { mutableStateOf("") }
@@ -23,30 +25,73 @@ fun UploadRentalScreen(navController: NavController) {
     var area by remember { mutableStateOf("") }
 
     var selectedImages by remember { mutableStateOf<List<Uri>>(emptyList()) }
+
     val storage = FirebaseStorage.getInstance()
     val db = FirebaseFirestore.getInstance()
+
+    // ✅ IMAGE PICKER (MULTIPLE)
+    val imagePickerLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.GetMultipleContents()
+    ) { uris ->
+        if (uris.isNotEmpty()) {
+            selectedImages = uris
+        }
+    }
 
     Scaffold(
         topBar = {
             TopAppBar(title = { Text("Upload Rental") })
         }
-    ) {
+    ) { padding ->
         Column(
             modifier = Modifier
-                .padding(it)
+                .padding(padding)
                 .padding(16.dp)
                 .fillMaxSize(),
             verticalArrangement = Arrangement.spacedBy(12.dp)
         ) {
-            OutlinedTextField(value = title, onValueChange = { title = it }, label = { Text("Title") }, modifier = Modifier.fillMaxWidth())
-            OutlinedTextField(value = address, onValueChange = { address = it }, label = { Text("Address") }, modifier = Modifier.fillMaxWidth())
-            OutlinedTextField(value = rent, onValueChange = { rent = it }, label = { Text("Rent") }, keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number), modifier = Modifier.fillMaxWidth())
-            OutlinedTextField(value = furnishing, onValueChange = { furnishing = it }, label = { Text("Furnishing (Fully/Semi/Unfurnished)") }, modifier = Modifier.fillMaxWidth())
-            OutlinedTextField(value = area, onValueChange = { area = it }, label = { Text("Area (Sq.Ft)") }, modifier = Modifier.fillMaxWidth())
 
-            // Pick image button
+            OutlinedTextField(
+                value = title,
+                onValueChange = { title = it },
+                label = { Text("Title") },
+                modifier = Modifier.fillMaxWidth()
+            )
+
+            OutlinedTextField(
+                value = address,
+                onValueChange = { address = it },
+                label = { Text("Address") },
+                modifier = Modifier.fillMaxWidth()
+            )
+
+            OutlinedTextField(
+                value = rent,
+                onValueChange = { rent = it },
+                label = { Text("Rent") },
+                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                modifier = Modifier.fillMaxWidth()
+            )
+
+            OutlinedTextField(
+                value = furnishing,
+                onValueChange = { furnishing = it },
+                label = { Text("Furnishing (Fully / Semi / Unfurnished)") },
+                modifier = Modifier.fillMaxWidth()
+            )
+
+            OutlinedTextField(
+                value = area,
+                onValueChange = { area = it },
+                label = { Text("Area (Sq.Ft)") },
+                modifier = Modifier.fillMaxWidth()
+            )
+
+            // ✅ SELECT IMAGES BUTTON (FIXED)
             Button(
-                onClick = { /* launch image picker here */ },
+                onClick = {
+                    imagePickerLauncher.launch("image/*")
+                },
                 modifier = Modifier.fillMaxWidth()
             ) {
                 Text("Select Images")
@@ -70,7 +115,8 @@ fun UploadRentalScreen(navController: NavController) {
                         }
                     )
                 },
-                modifier = Modifier.fillMaxWidth()
+                modifier = Modifier.fillMaxWidth(),
+                enabled = title.isNotBlank() && address.isNotBlank()
             ) {
                 Text("Submit Rental")
             }

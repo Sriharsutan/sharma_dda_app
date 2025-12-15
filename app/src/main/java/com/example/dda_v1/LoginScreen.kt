@@ -28,14 +28,21 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.navigation.NavController
 import com.google.firebase.auth.FirebaseAuth
+import androidx.compose.material.icons.filled.Visibility
+import androidx.compose.material.icons.filled.VisibilityOff
+import com.google.firebase.firestore.FirebaseFirestore
 
 @Composable
 fun LoginScreen(navController: NavController) {
     var email by remember { mutableStateOf("") }
     var password by remember { mutableStateOf("") }
-    var passwordVisible by remember { mutableStateOf(false) }
+    //var passwordVisible by remember { mutableStateOf(false) }
     var errorMessage by remember { mutableStateOf("") }
     var isLoading by remember { mutableStateOf(false) }
+    var showResetDialog by remember { mutableStateOf(false) }
+    var resetEmail by remember { mutableStateOf("") }
+    var resetMessage by remember { mutableStateOf("") }
+
 
     // Main background – gradient using brand colors
     Box(
@@ -60,7 +67,7 @@ fun LoginScreen(navController: NavController) {
         ) {
             // DDA Logo on Top
             Image(
-                painter = painterResource(id = R.drawable.dda_logo), // ← your logo
+                painter = painterResource(id = R.drawable.dda_final_logo), // ← your logo
                 contentDescription = "DDA Logo",
                 modifier = Modifier
                     .size(120.dp)
@@ -135,7 +142,8 @@ fun LoginScreen(navController: NavController) {
                         enabled = !isLoading
                     )
 
-                    // Password Field
+                    var passwordVisible by remember { mutableStateOf(false) }
+
                     OutlinedTextField(
                         value = password,
                         onValueChange = {
@@ -149,6 +157,18 @@ fun LoginScreen(navController: NavController) {
                                 contentDescription = null,
                                 tint = Color(0xFF0A2C78)
                             )
+                        },
+                        trailingIcon = {
+                            val icon = if (passwordVisible) Icons.Default.Visibility else Icons.Default.VisibilityOff
+                            val description = if (passwordVisible) "Hide password" else "Show password"
+
+                            IconButton(onClick = { passwordVisible = !passwordVisible }) {
+                                Icon(
+                                    imageVector = icon,
+                                    contentDescription = description,
+                                    tint = Color.Gray
+                                )
+                            }
                         },
                         singleLine = true,
                         modifier = Modifier.fillMaxWidth(),
@@ -184,23 +204,46 @@ fun LoginScreen(navController: NavController) {
                             } else {
                                 isLoading = true
                                 val auth = FirebaseAuth.getInstance()
-                                val adminEmail = "admin@dda.com"
-                                val adminPassword = "admin123"
 
                                 auth.signInWithEmailAndPassword(email, password)
                                     .addOnCompleteListener { task ->
                                         isLoading = false
                                         if (task.isSuccessful) {
-                                            if (email == adminEmail && password == adminPassword) {
-                                                navController.navigate("admin_dashboard") {
-                                                    popUpTo("login") { inclusive = true }
-                                                }
-                                            } else {
-                                                navController.navigate("home") {
-                                                    popUpTo("login") { inclusive = true }
-                                                }
+                                            val user = FirebaseAuth.getInstance().currentUser
+
+                                            if (user != null && !user.isEmailVerified) {
+                                                FirebaseAuth.getInstance().signOut()
+
+                                                errorMessage = "Please verify your email before logging in. Check the spam in gmail for the link"
+                                                user.sendEmailVerification() // re-send link
+                                                return@addOnCompleteListener
                                             }
-                                        } else {
+                                            val uid = user!!.uid
+                                            val db = FirebaseFirestore.getInstance()
+
+                                            db.collection("admins").document(uid).get()
+                                                .addOnSuccessListener { doc ->
+                                                    if (doc.exists()) {
+                                                        // User IS admin
+                                                        navController.navigate("admin_dashboard") {
+                                                            popUpTo("login") { inclusive = true }
+                                                        }
+                                                    } else {
+                                                        // Normal user
+                                                        navController.navigate("home") {
+                                                            popUpTo("login") { inclusive = true }
+                                                        }
+                                                    }
+                                                }
+                                                .addOnFailureListener { _ ->
+                                                    // If read fails, treat as normal user
+                                                    navController.navigate("home") {
+                                                        popUpTo("login") { inclusive = true }
+                                                    }
+                                                }
+                                        }
+
+                                        else {
                                             errorMessage = task.exception?.message
                                                 ?: "Login failed. Please try again."
                                         }
@@ -240,6 +283,17 @@ fun LoginScreen(navController: NavController) {
                             }
                         }
                     }
+                    TextButton(
+                        onClick = { showResetDialog = true },
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Text(
+                            text = "Forgot Password?",
+                            color = Color(0xFF0A2C78),
+                            fontSize = 15.sp,
+                            fontWeight = FontWeight.Medium
+                        )
+                    }
 
                     // Signup Redirect
                     TextButton(
@@ -261,6 +315,53 @@ fun LoginScreen(navController: NavController) {
                 color = Color.White.copy(alpha = 0.6f),
                 fontSize = 12.sp
             )
+
+            if (showResetDialog) {
+                AlertDialog(
+                    onDismissRequest = { showResetDialog = false },
+                    title = { Text("Reset Password") },
+                    text = {
+                        Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                            OutlinedTextField(
+                                value = resetEmail,
+                                onValueChange = { resetEmail = it },
+                                label = { Text("Enter your email") },
+                                singleLine = true,
+                                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Email)
+                            )
+
+                            if (resetMessage.isNotEmpty()) {
+                                Text(resetMessage, color = Color.Red, fontSize = 14.sp)
+                            }
+                        }
+                    },
+                    confirmButton = {
+                        TextButton(onClick = {
+                            if (resetEmail.isBlank() || !resetEmail.contains("@")) {
+                                resetMessage = "Enter a valid email"
+                            } else {
+                                FirebaseAuth.getInstance()
+                                    .sendPasswordResetEmail(resetEmail)
+                                    .addOnSuccessListener {
+                                        resetMessage = ""
+                                        showResetDialog = false
+                                        errorMessage = "Password reset link sent to $resetEmail"
+                                    }
+                                    .addOnFailureListener {
+                                        resetMessage = "Failed to send reset email."
+                                    }
+                            }
+                        }) {
+                            Text("Send Email")
+                        }
+                    },
+                    dismissButton = {
+                        TextButton(onClick = { showResetDialog = false }) {
+                            Text("Cancel")
+                        }
+                    }
+                )
+            }
         }
     }
 }

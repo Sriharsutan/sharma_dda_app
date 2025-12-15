@@ -1,15 +1,8 @@
 package com.example.dda_v1
 
-import androidx.compose.animation.animateContentSize
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Assignment
-import androidx.compose.material.icons.filled.BusinessCenter
-import androidx.compose.material.icons.filled.Description
-import androidx.compose.material.icons.filled.HomeWork
-import androidx.compose.material.icons.filled.People
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
@@ -20,144 +13,119 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.navigation.NavController
-
+import androidx.compose.foundation.clickable
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun DocumentationScreen(navController: NavController) {
+    val topBarColor = Color(0xFF0A2C78)
+
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("Documentation", fontWeight = FontWeight.Bold) },
-                colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor = Color(0xFF0A2C78),
-                    titleContentColor = Color.White
-                )
+                title = { Text("Documentation", fontWeight = FontWeight.Bold, color = Color.White) },
+                colors = TopAppBarDefaults.topAppBarColors(containerColor = topBarColor)
             )
-        }
+        },
+        containerColor = Color(0xFFF8F6F6)
     ) { paddingValues ->
-        Box(
+        Column(
             modifier = Modifier
                 .fillMaxSize()
-                .background(
-                    brush = Brush.verticalGradient(
-                        listOf(
-                            Color(0xFF0A2C78),
-                            Color(0xFF3EB8C4)
-                        )
-                    )
-                )
                 .padding(paddingValues)
+                .padding(horizontal = 16.dp, vertical = 18.dp),
+            verticalArrangement = Arrangement.spacedBy(14.dp)
         ) {
-            Column(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(horizontal = 20.dp, vertical = 24.dp),
-                horizontalAlignment = Alignment.CenterHorizontally,
-                verticalArrangement = Arrangement.spacedBy(20.dp)
-            ) {
-                Text(
-                    text = "Select a Document Form",
-                    fontSize = 22.sp,
-                    fontWeight = FontWeight.Bold,
-                    color = Color.White
-                )
+            Text(
+                text = "Select a Document Form",
+                fontSize = 20.sp,
+                fontWeight = FontWeight.Bold,
+                color = Color(0xFF0A2C78)
+            )
 
-                // Each Documentation Card
-                DocumentationCard(
-                    icon = Icons.Default.Description,
-                    title = "Conveyance Deed Form",
-                    subtitle = "Submit your conveyance and deed documents",
-                    onClick = { navController.navigate("conv_deed_form") },
-                    gradientColors = listOf(Color(0xFF0A2C78), Color(0xFF3EB8C4))
-                )
+            // Gradient buttons using emoji icons
+            GradientDocButton(
+                emoji = "📄",
+                title = "Conveyance Deed Form",
+                subtitle = "Submit your conveyance and deed documents",
+                gradient = Brush.horizontalGradient(listOf(Color(0xFF7F00FF), Color(0xFFE100FF))),
+                onClick = { navController.navigate("conv_deed_form") }
+            )
 
-                DocumentationCard(
-                    icon = Icons.Default.HomeWork,
-                    title = "Possession Letter & NOC Form",
-                    subtitle = "Upload your possession letter and NOC forms",
-                    onClick = { navController.navigate("pletter_noc") },
-                    gradientColors = listOf(Color(0xFF0A2C78), Color(0xFF3EB8C4))
-                )
+            GradientDocButton(
+                emoji = "🏠",
+                title = "Possession Letter & NOC",
+                subtitle = "Upload possession letter and NOC forms",
+                gradient = Brush.horizontalGradient(listOf(Color(0xFF36D1DC), Color(0xFF5B86E5))),
+                onClick = { navController.navigate("pletter_noc") }
+            )
 
-                DocumentationCard(
-                    icon = Icons.Default.People,
-                    title = "Applicant & Co-Applicant (Salaried)",
-                    subtitle = "Documents for salaried applicants",
-                    onClick = { navController.navigate("salaried") },
-                    gradientColors = listOf(Color(0xFF0A2C78), Color(0xFF3EB8C4))
-                )
+            GradientDocButton(
+                emoji = "💼",
+                title = "Get Home Loan",
+                subtitle = "Forms for salaried and self-employed",
+                gradient = Brush.horizontalGradient(listOf(Color(0xFF7F00FF), Color(0xFF3D7BF9))),
+                onClick = { navController.navigate("home_loan") }
+            )
 
-                DocumentationCard(
-                    icon = Icons.Default.BusinessCenter,
-                    title = "Self-Employed / Business",
-                    subtitle = "Upload business or self-employed related docs",
-                    onClick = { navController.navigate("self-employeed") },
-                    gradientColors = listOf(Color(0xFF0A2C78), Color(0xFF3EB8C4))
-                )
-            }
+            Spacer(modifier = Modifier.weight(1f))
         }
     }
 }
 
 @Composable
-fun DocumentationCard(
-    icon: androidx.compose.ui.graphics.vector.ImageVector,
+fun GradientDocButton(
+    emoji: String,
     title: String,
     subtitle: String,
-    gradientColors: List<Color>,
+    gradient: Brush,
     onClick: () -> Unit
 ) {
     Card(
         modifier = Modifier
             .fillMaxWidth()
-            .height(110.dp)
-            .animateContentSize(),
-        shape = RoundedCornerShape(20.dp),
-        colors = CardDefaults.cardColors(containerColor = Color.White),
-        elevation = CardDefaults.cardElevation(6.dp),
-        onClick = onClick
+            .height(150.dp)
+            .clickable { onClick() },
+        shape = RoundedCornerShape(14.dp),
+        elevation = CardDefaults.cardElevation(6.dp)
     ) {
-        Row(
+        Box(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(16.dp),
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.Start
+                .background(gradient)
+                .padding(14.dp),
+            contentAlignment = Alignment.CenterStart
         ) {
-            Box(
-                modifier = Modifier
-                    .size(60.dp)
-                    .background(
-                        brush = Brush.linearGradient(gradientColors),
-                        shape = RoundedCornerShape(16.dp)
-                    ),
-                contentAlignment = Alignment.Center
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.Start,
+                modifier = Modifier.fillMaxWidth()
             ) {
-                Icon(
-                    imageVector = icon,
-                    contentDescription = null,
-                    tint = Color.White,
-                    modifier = Modifier.size(30.dp)
-                )
-            }
+                // emoji "icon"
+                Box(
+                    modifier = Modifier
+                        .size(56.dp)
+                        .background(Color.White.copy(alpha = 0.12f), shape = RoundedCornerShape(10.dp)),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Text(text = emoji, fontSize = 28.sp)
+                }
 
-            Spacer(modifier = Modifier.width(16.dp))
+                Spacer(modifier = Modifier.width(14.dp))
 
-            Column(
-                verticalArrangement = Arrangement.Center
-            ) {
-                Text(
-                    text = title,
-                    fontSize = 18.sp,
-                    fontWeight = FontWeight.Bold,
-                    color = Color(0xFF0A2C78)
-                )
-                Spacer(modifier = Modifier.height(4.dp))
-                Text(
-                    text = subtitle,
-                    fontSize = 13.sp,
-                    color = Color.Gray
-                )
+                Column {
+                    Text(
+                        text = title,
+                        color = Color.White,
+                        fontSize = 17.sp,
+                        fontWeight = FontWeight.SemiBold
+                    )
+                    Spacer(modifier = Modifier.height(6.dp))
+                    Text(
+                        text = subtitle,
+                        color = Color.White.copy(alpha = 0.9f),
+                        fontSize = 13.sp
+                    )
+                }
             }
         }
     }

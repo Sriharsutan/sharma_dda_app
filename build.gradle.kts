@@ -11,6 +11,9 @@ plugins {
     id("com.google.gms.google-services") version "4.4.4" apply false
 }
 
-tasks.register("clean", Delete::class) {
-    delete(rootProject.buildDir)
+//tasks.register("clean", Delete::class) {
+//    delete(rootProject.buildDir)
+//}
+tasks.register<Delete>("clean") {
+    delete(rootProject.layout.buildDirectory)
 }

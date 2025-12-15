@@ -4,7 +4,6 @@ import android.net.Uri
 import android.widget.Toast
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
-import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
@@ -12,17 +11,15 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
-import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.navigation.NavController
-import coil.compose.rememberAsyncImagePainter
+import com.google.firebase.auth.FirebaseAuth
+import com.google.firebase.firestore.FieldValue
 import com.google.firebase.firestore.ktx.firestore
 import com.google.firebase.ktx.Firebase
 import com.google.firebase.storage.ktx.storage
@@ -32,45 +29,69 @@ import kotlinx.coroutines.tasks.await
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun ConveyanceDeedFormScreen(navController: NavController) {
+
     val context = LocalContext.current
     val coroutineScope = rememberCoroutineScope()
     val db = Firebase.firestore
     val storage = Firebase.storage
+    val userId = FirebaseAuth.getInstance().currentUser?.uid ?: "unknown_user"
 
-    // Stable list of document names
+    // Documents for this form
     val documentNames = listOf(
         "Appointment Letter of DDA for CD",
         "Demand Letter",
         "Possession Letter & NOC",
         "Possession Slip Copy from J.E.",
         "Water NOC & Bill",
-        "Electricity Bill (<3 months)",
+        "Electricity Bill",
         "Stamp Paper of Consideration Amount",
         "Registration Fee Receipt",
         "Registration Appointment Proof",
         "Three CD Paper on Green Paper",
         "Passport Size Photo",
-        "Processing Fee (DDA Challan ₹200)",
-        "Aadhaar Card of Alottee/Co-Alottee",
-        "PAN Card of Alottee/Co-Alottee",
-        "Witness 1 Aadhaar Cards",
-        "Witness 2 Aadhaar Cards",
+        "Processing Fee DDA Challan",
+        "Aadhaar Card of Alottee or CoAlottee",
+        "PAN Card of Alottee or CoAlottee",
+        "Witness 1 Aadhaar Card",
+        "Witness 2 Aadhaar Card",
         "NOC from Spouse",
-        "Mortgage Affidavit (Loan)",
-        "Banker’s ID Proof",
+        "Mortgage Affidavit Loan",
+        "Banker ID Proof",
         "Authority Letter"
     )
 
-    // ✅ Safe immutable initialization (Compose-friendly)
+    // URIs
     val documentUris = remember { mutableStateListOf<Uri?>() }
     if (documentUris.isEmpty()) {
         repeat(documentNames.size) { documentUris.add(null) }
     }
 
-    // File pickers
+    // Pickers
+//    val pickers = documentNames.mapIndexed { index, _ ->
+//        rememberLauncherForActivityResult(ActivityResultContracts.GetContent()) { uri ->
+//            if (uri != null) documentUris[index] = uri
+//        }
+//    }
+    val MAX_FILE_SIZE_BYTES = 5 * 1024 * 1024L
+
     val pickers = documentNames.mapIndexed { index, _ ->
         rememberLauncherForActivityResult(ActivityResultContracts.GetContent()) { uri ->
-            if (uri != null) documentUris[index] = uri
+            if (uri != null) {
+                val fileSize = getFileSize(context, uri)
+
+                if (fileSize > MAX_FILE_SIZE_BYTES) {
+                    val sizeMB = fileSize / (1024.0 * 1024.0)
+                    Toast.makeText(
+                        context,
+                        "File size (${String.format("%.2f", sizeMB)} MB) exceeded 5MB limit. Please reduce the size and re-upload.",
+                        Toast.LENGTH_LONG
+                    ).show()
+
+                    return@rememberLauncherForActivityResult
+                } else {
+                    documentUris[index] = uri
+                }
+            }
         }
     }
 
@@ -88,10 +109,11 @@ fun ConveyanceDeedFormScreen(navController: NavController) {
             )
         }
     ) { padding ->
+
         Column(
             modifier = Modifier
                 .fillMaxSize()
-                .verticalScroll(rememberScrollState()) // ✅ scrollable
+                .verticalScroll(rememberScrollState())
                 .background(Color(0xFFF5F5F5))
                 .padding(padding)
                 .padding(16.dp),
@@ -106,9 +128,9 @@ fun ConveyanceDeedFormScreen(navController: NavController) {
             )
 
             // Upload buttons
-            documentNames.forEachIndexed { index, docName ->
+            documentNames.forEachIndexed { index, name ->
                 UploadDocButton(
-                    label = docName,
+                    label = name,
                     imageUri = documentUris[index],
                     onClick = { pickers[index].launch("image/*") }
                 )
@@ -127,15 +149,16 @@ fun ConveyanceDeedFormScreen(navController: NavController) {
             Button(
                 onClick = {
                     coroutineScope.launch {
-                        // Validate all uploads
-                        val missingDocs = documentNames.filterIndexed { index, _ ->
+
+                        // Validate all documents
+                        val missing = documentNames.filterIndexed { index, _ ->
                             documentUris[index] == null
                         }
 
-                        if (missingDocs.isNotEmpty()) {
+                        if (missing.isNotEmpty()) {
                             Toast.makeText(
                                 context,
-                                "Please upload: ${missingDocs.joinToString(", ")}",
+                                "Please upload: ${missing.joinToString()}",
                                 Toast.LENGTH_LONG
                             ).show()
                             return@launch
@@ -143,39 +166,78 @@ fun ConveyanceDeedFormScreen(navController: NavController) {
 
                         isSubmitting = true
                         progressText = "Uploading documents..."
-                        val uploadedDocs = mutableMapOf<String, String>()
+
+                        val uploadedDocs = mutableMapOf<String, Any>()
 
                         try {
                             documentUris.forEachIndexed { index, uri ->
-                                uri?.let {
-                                    val safeName = documentNames[index].replace(" ", "_")
-                                    progressText = "Uploading ${documentNames[index]}..."
-                                    val ref = storage.reference.child(
-                                        "conveyance_deed/${System.currentTimeMillis()}_$safeName.jpg"
-                                    )
-                                    ref.putFile(it).await()
-                                    val url = ref.downloadUrl.await().toString()
-                                    uploadedDocs[documentNames[index]] = url
-                                }
+
+                                val documentName = documentNames[index]
+                                uri ?: return@forEachIndexed
+
+                                val imageId = System.currentTimeMillis().toString()
+                                val safeName =
+                                    documentName.replace("[^A-Za-z0-9_]".toRegex(), "")
+                                val fileName = "${safeName}_$imageId.jpg"
+
+                                progressText = "Uploading $documentName..."
+
+                                val ref = storage.reference
+                                    .child("forms")
+                                    .child("conveyance_deed")
+                                    .child(userId)
+                                    .child(fileName)
+
+                                ref.putFile(uri).await()
+                                val url = ref.downloadUrl.await().toString()
+
+                                uploadedDocs[documentName] = mapOf(
+                                    "imageId" to imageId,
+                                    "url" to url
+                                )
                             }
 
-                            // Save in Firestore
+                            val userId = FirebaseAuth.getInstance().currentUser!!.uid
+
+                            val userDetailsSnap = Firebase.firestore
+                                .collection("user_details")
+                                .document(userId)
+                                .get()
+                                .await()
+
+                            val username = userDetailsSnap.getString("username") ?: "Unknown"
+
+                            val submissionId = System.currentTimeMillis().toString()   // Unique submission ID
                             db.collection("conveyance_forms")
-                                .add(
+                                .document(userId)
+                                .collection("submissions")
+                                .document(submissionId)
+                                .set(
                                     hashMapOf(
-                                        "timestamp" to com.google.firebase.firestore.FieldValue.serverTimestamp(),
-                                        "documents" to uploadedDocs
+                                        "userId" to userId,
+                                        "username" to username,
+                                        "documents" to uploadedDocs,
+                                        "timestamp" to FieldValue.serverTimestamp()
                                     )
                                 )
 
-                            progressText = ""
                             isSubmitting = false
-                            Toast.makeText(context, "Form Submitted Successfully!", Toast.LENGTH_LONG).show()
+                            progressText = ""
+                            Toast.makeText(
+                                context,
+                                "Form submitted successfully!",
+                                Toast.LENGTH_LONG
+                            ).show()
                             navController.popBackStack()
+
                         } catch (e: Exception) {
                             isSubmitting = false
                             progressText = ""
-                            Toast.makeText(context, "Error: ${e.message}", Toast.LENGTH_LONG).show()
+                            Toast.makeText(
+                                context,
+                                "Upload failed: ${e.message}",
+                                Toast.LENGTH_LONG
+                            ).show()
                         }
                     }
                 },
@@ -186,41 +248,14 @@ fun ConveyanceDeedFormScreen(navController: NavController) {
                 colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF6200EE)),
                 shape = RoundedCornerShape(12.dp)
             ) {
-                if (isSubmitting) {
-                    CircularProgressIndicator(color = Color.White, modifier = Modifier.size(24.dp))
-                } else {
+                if (isSubmitting)
+                    CircularProgressIndicator(
+                        color = Color.White,
+                        modifier = Modifier.size(24.dp)
+                    )
+                else
                     Text("Submit", fontSize = 18.sp, fontWeight = FontWeight.Bold)
-                }
             }
-        }
-    }
-}
-
-@Composable
-fun UploadDocButton(label: String, imageUri: Uri?, onClick: () -> Unit) {
-    Column {
-        Button(
-            onClick = onClick,
-            modifier = Modifier
-                .fillMaxWidth()
-                .height(50.dp),
-            colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF777D80)),
-            shape = RoundedCornerShape(12.dp)
-        ) {
-            Text(label, fontWeight = FontWeight.Bold)
-        }
-
-        if (imageUri != null) {
-            Spacer(modifier = Modifier.height(8.dp))
-            Image(
-                painter = rememberAsyncImagePainter(model = imageUri),
-                contentDescription = label,
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(150.dp)
-                    .clip(RoundedCornerShape(8.dp)),
-                contentScale = ContentScale.Crop
-            )
         }
     }
 }

@@ -4,7 +4,6 @@ import android.net.Uri
 import android.widget.Toast
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
-import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
@@ -12,17 +11,15 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
-import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.navigation.NavController
-import coil.compose.rememberAsyncImagePainter
+import com.google.firebase.auth.FirebaseAuth
+import com.google.firebase.firestore.FieldValue
 import com.google.firebase.firestore.ktx.firestore
 import com.google.firebase.ktx.Firebase
 import com.google.firebase.storage.ktx.storage
@@ -32,35 +29,59 @@ import kotlinx.coroutines.tasks.await
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun SalariedFormScreen(navController: NavController) {
+
     val context = LocalContext.current
     val coroutineScope = rememberCoroutineScope()
     val db = Firebase.firestore
     val storage = Firebase.storage
+    val userId = FirebaseAuth.getInstance().currentUser?.uid ?: "unknown_user"
 
-    // Document List (All are compulsory)
+    // All mandatory documents
     val documentNames = listOf(
         "PAN Card",
         "Aadhaar Card",
         "Rent Agreement",
         "ID Card",
         "Assets Proof",
-        "Salary Slip (Latest 3 Months)",
-        "ITR (2 Years) OR Form 16 (Part A/B, Q1–Q4)",
-        "Bank Statement (Latest 6 Months)",
+        "Salary Slip Latest 3 Months",
+        "ITR or Form 16",
+        "Bank Statement Latest 6 Months",
         "Allotment Letter",
         "Passport Size Photo"
     )
 
-    // Remember URI for each upload
+    // URIs
     val documentUris = remember { mutableStateListOf<Uri?>() }
     if (documentUris.isEmpty()) {
         repeat(documentNames.size) { documentUris.add(null) }
     }
 
-    // File Pickers
+    // Pickers
+//    val pickers = documentNames.mapIndexed { index, _ ->
+//        rememberLauncherForActivityResult(ActivityResultContracts.GetContent()) { uri ->
+//            if (uri != null) documentUris[index] = uri
+//        }
+//    }
+    val MAX_FILE_SIZE_BYTES = 5 * 1024 * 1024L
+
     val pickers = documentNames.mapIndexed { index, _ ->
         rememberLauncherForActivityResult(ActivityResultContracts.GetContent()) { uri ->
-            if (uri != null) documentUris[index] = uri
+            if (uri != null) {
+                val fileSize = getFileSize(context, uri)
+
+                if (fileSize > MAX_FILE_SIZE_BYTES) {
+                    val sizeMB = fileSize / (1024.0 * 1024.0)
+                    Toast.makeText(
+                        context,
+                        "File size (${String.format("%.2f", sizeMB)} MB) exceeded 5MB limit. Please reduce the size and re-upload.",
+                        Toast.LENGTH_LONG
+                    ).show()
+
+                    return@rememberLauncherForActivityResult
+                } else {
+                    documentUris[index] = uri
+                }
+            }
         }
     }
 
@@ -82,7 +103,7 @@ fun SalariedFormScreen(navController: NavController) {
         Column(
             modifier = Modifier
                 .fillMaxSize()
-                .verticalScroll(rememberScrollState()) // ✅ scrollable
+                .verticalScroll(rememberScrollState())
                 .background(Color(0xFFF5F5F5))
                 .padding(padding)
                 .padding(16.dp),
@@ -106,11 +127,7 @@ fun SalariedFormScreen(navController: NavController) {
             }
 
             if (progressText.isNotEmpty()) {
-                Text(
-                    text = progressText,
-                    color = Color(0xFF0A6D92),
-                    fontWeight = FontWeight.SemiBold
-                )
+                Text(progressText, color = Color(0xFF0A6D92), fontWeight = FontWeight.SemiBold)
             }
 
             Spacer(modifier = Modifier.height(16.dp))
@@ -118,15 +135,16 @@ fun SalariedFormScreen(navController: NavController) {
             Button(
                 onClick = {
                     coroutineScope.launch {
-                        // Validate all uploads
-                        val missingDocs = documentNames.filterIndexed { index, _ ->
+
+                        // Validate
+                        val missing = documentNames.filterIndexed { index, _ ->
                             documentUris[index] == null
                         }
 
-                        if (missingDocs.isNotEmpty()) {
+                        if (missing.isNotEmpty()) {
                             Toast.makeText(
                                 context,
-                                "Please upload: ${missingDocs.joinToString(", ")}",
+                                "Please upload: ${missing.joinToString()}",
                                 Toast.LENGTH_LONG
                             ).show()
                             return@launch
@@ -134,40 +152,80 @@ fun SalariedFormScreen(navController: NavController) {
 
                         isSubmitting = true
                         progressText = "Uploading documents..."
-                        val uploadedDocs = mutableMapOf<String, String>()
+
+                        val uploadedDocs = mutableMapOf<String, Any>()
 
                         try {
                             documentUris.forEachIndexed { index, uri ->
-                                uri?.let {
-                                    val safeName = documentNames[index].replace(" ", "_")
-                                    progressText = "Uploading ${documentNames[index]}..."
-                                    val ref = storage.reference.child(
-                                        "salaried_forms/${System.currentTimeMillis()}_$safeName.jpg"
-                                    )
-                                    ref.putFile(it).await()
-                                    val url = ref.downloadUrl.await().toString()
-                                    uploadedDocs[documentNames[index]] = url
-                                }
+
+                                val documentName = documentNames[index]
+                                uri ?: return@forEachIndexed
+
+                                val imageId = System.currentTimeMillis().toString()
+                                val safeName =
+                                    documentName.replace("[^A-Za-z0-9_]".toRegex(), "")
+                                val fileName = "${safeName}_$imageId.jpg"
+
+                                progressText = "Uploading $documentName..."
+
+                                val ref = storage.reference
+                                    .child("forms")
+                                    .child("salaried")
+                                    .child(userId)
+                                    .child(fileName)
+
+                                ref.putFile(uri).await()
+                                val url = ref.downloadUrl.await().toString()
+
+                                uploadedDocs[documentName] = mapOf(
+                                    "imageId" to imageId,
+                                    "url" to url
+                                )
                             }
 
-                            // Save metadata in Firestore
+                            // Save Firestore data
+                            val submissionId = System.currentTimeMillis().toString()
+
+                            val userId = FirebaseAuth.getInstance().currentUser!!.uid
+
+                            val userDetailsSnap = Firebase.firestore
+                                .collection("user_details")
+                                .document(userId)
+                                .get()
+                                .await()
+
+                            val username = userDetailsSnap.getString("username") ?: "Unknown"
+
                             db.collection("salaried_forms")
-                                .add(
+                                .document(userId)
+                                .collection("submissions")
+                                .document(submissionId)
+                                .set(
                                     hashMapOf(
-                                        "timestamp" to com.google.firebase.firestore.FieldValue.serverTimestamp(),
-                                        "documents" to uploadedDocs
+                                        "userId" to userId,
+                                        "username" to username,
+                                        "documents" to uploadedDocs,
+                                        "timestamp" to FieldValue.serverTimestamp()
                                     )
                                 )
 
-                            progressText = ""
                             isSubmitting = false
-                            Toast.makeText(context, "Form Submitted Successfully!", Toast.LENGTH_LONG).show()
+                            progressText = ""
+                            Toast.makeText(
+                                context,
+                                "Form submitted successfully!",
+                                Toast.LENGTH_LONG
+                            ).show()
                             navController.popBackStack()
 
                         } catch (e: Exception) {
                             isSubmitting = false
                             progressText = ""
-                            Toast.makeText(context, "Error: ${e.message}", Toast.LENGTH_LONG).show()
+                            Toast.makeText(
+                                context,
+                                "Upload failed: ${e.message}",
+                                Toast.LENGTH_LONG
+                            ).show()
                         }
                     }
                 },
@@ -178,11 +236,10 @@ fun SalariedFormScreen(navController: NavController) {
                 colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF0A6D92)),
                 shape = RoundedCornerShape(12.dp)
             ) {
-                if (isSubmitting) {
+                if (isSubmitting)
                     CircularProgressIndicator(color = Color.White, modifier = Modifier.size(24.dp))
-                } else {
+                else
                     Text("Submit", fontSize = 18.sp, fontWeight = FontWeight.Bold)
-                }
             }
         }
     }

@@ -1,14 +1,18 @@
 package com.example.dda_v1
 
-import androidx.compose.foundation.Image
+import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.pager.HorizontalPager
+import androidx.compose.foundation.pager.rememberPagerState
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Call
+import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Favorite
 import androidx.compose.material.icons.outlined.FavoriteBorder
 import androidx.compose.material3.*
@@ -22,41 +26,30 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import androidx.navigation.NavController
 import coil.compose.AsyncImage
-import com.google.accompanist.pager.*
 import com.google.firebase.firestore.FirebaseFirestore
+import androidx.compose.ui.window.Dialog
+import androidx.compose.foundation.interaction.MutableInteractionSource
 
-//data class Rental(
-//    val title: String = "",
-//    val address: String = "",
-//    val images: List<String> = emptyList(),
-//    val rent: String = "",
-//    val furnishing: String = "",
-//    val area: String = ""
-//)
-
-@OptIn(ExperimentalMaterial3Api::class, ExperimentalPagerApi::class)
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun RentalListScreen(navController: NavController) {
+fun RentalListScreen() {
 
     val db = FirebaseFirestore.getInstance()
     var rentals by remember { mutableStateOf<List<Rental>>(emptyList()) }
 
-    // Live listener for Firestore rentals
-    LaunchedEffect(true) {
+    LaunchedEffect(Unit) {
         db.collection("rentals").addSnapshotListener { value, _ ->
-            val list = value?.documents?.map { doc ->
+            rentals = value?.documents?.mapNotNull { doc ->
                 Rental(
                     title = doc.getString("title") ?: "",
                     address = doc.getString("address") ?: "",
                     rent = doc.getString("rent") ?: "",
                     furnishing = doc.getString("furnishing") ?: "",
                     area = doc.getString("area") ?: "",
-                    images = doc.get("images") as? List<String> ?: emptyList()
+                    images = (doc.get("images") as? List<*>)?.filterIsInstance<String>() ?: emptyList()
                 )
             } ?: emptyList()
-            rentals = list
         }
     }
 
@@ -71,6 +64,7 @@ fun RentalListScreen(navController: NavController) {
             )
         }
     ) { padding ->
+
         LazyColumn(
             modifier = Modifier
                 .fillMaxSize()
@@ -86,39 +80,41 @@ fun RentalListScreen(navController: NavController) {
     }
 }
 
-@OptIn(ExperimentalPagerApi::class)
+@OptIn(ExperimentalFoundationApi::class)
 @Composable
 fun RentalCard(rental: Rental) {
+
     var liked by remember { mutableStateOf(false) }
     var showPhone by remember { mutableStateOf(false) }
-    val pagerState = rememberPagerState()
+    var selectedImage by remember { mutableStateOf<String?>(null) }
+
+    val pagerState = rememberPagerState { rental.images.size }
     val viewers = remember { (10..40).random() }
 
     Card(
-        modifier = Modifier
-            .fillMaxWidth()
-            .wrapContentHeight(),
+        modifier = Modifier.fillMaxWidth(),
         shape = RoundedCornerShape(16.dp),
-        colors = CardDefaults.cardColors(containerColor = Color.White),
-        elevation = CardDefaults.cardElevation(6.dp)
+        elevation = CardDefaults.cardElevation(6.dp),
+        colors = CardDefaults.cardColors(containerColor = Color.White)
     ) {
+
         Column(modifier = Modifier.padding(12.dp)) {
 
-            // Title + Icons row
             Row(
                 verticalAlignment = Alignment.CenterVertically,
                 modifier = Modifier.fillMaxWidth()
             ) {
+
                 Column(modifier = Modifier.weight(1f)) {
                     Text(
-                        text = rental.title,
+                        rental.title,
                         fontWeight = FontWeight.Bold,
                         fontSize = 18.sp,
                         maxLines = 1,
                         overflow = TextOverflow.Ellipsis
                     )
                     Text(
-                        text = rental.address,
+                        rental.address,
                         fontSize = 14.sp,
                         color = Color.Gray,
                         maxLines = 1,
@@ -136,99 +132,151 @@ fun RentalCard(rental: Rental) {
 
                 IconButton(onClick = { showPhone = !showPhone }) {
                     Icon(
-                        imageVector = Icons.Default.Call,
+                        imageVector = Icons.Filled.Call,
                         contentDescription = "Call",
                         tint = Color(0xFF6200EE)
                     )
                 }
             }
 
-            // Image carousel using Coil
             Box(modifier = Modifier.height(200.dp)) {
+
                 if (rental.images.isNotEmpty()) {
+
                     HorizontalPager(
-                        count = rental.images.size,
                         state = pagerState,
                         modifier = Modifier.fillMaxSize()
                     ) { page ->
-                        AsyncImage(
-                            model = rental.images[page],
-                            contentDescription = null,
+                        Box(
                             modifier = Modifier
                                 .fillMaxSize()
-                                .clip(RoundedCornerShape(12.dp)),
-                            contentScale = ContentScale.Crop
-                        )
+                                .clip(RoundedCornerShape(12.dp))
+                                .clickable(
+                                    indication = null, //  important
+                                    interactionSource = remember { MutableInteractionSource() }
+                                ) {
+                                    selectedImage = rental.images[page]
+                                }
+                        ) {
+                            AsyncImage(
+                                model = rental.images[page],
+                                contentDescription = null,
+                                modifier = Modifier.fillMaxSize(),
+                                contentScale = ContentScale.Crop
+                            )
+                        }
+
                     }
 
-                    // Viewer overlay
+                    /* Viewer badge */
                     Box(
                         modifier = Modifier
                             .align(Alignment.TopStart)
                             .background(
-                                color = Color.Black.copy(alpha = 0.6f),
-                                shape = RoundedCornerShape(bottomEnd = 8.dp)
+                                Color.Black.copy(alpha = 0.6f),
+                                RoundedCornerShape(bottomEnd = 8.dp)
                             )
                             .padding(horizontal = 8.dp, vertical = 4.dp)
                     ) {
                         Text(
-                            text = "⚡ $viewers people viewing now",
+                            "⚡ $viewers people viewing now",
                             color = Color.White,
                             fontSize = 12.sp
                         )
                     }
 
-                    // Page indicator
-                    HorizontalPagerIndicator(
-                        pagerState = pagerState,
+                    /* Page indicator */
+                    Row(
                         modifier = Modifier
                             .align(Alignment.BottomCenter)
                             .padding(8.dp),
-                        activeColor = Color.White,
-                        inactiveColor = Color.LightGray
-                    )
+                        horizontalArrangement = Arrangement.Center
+                    ) {
+                        repeat(rental.images.size) { index ->
+                            Box(
+                                modifier = Modifier
+                                    .size(8.dp)
+                                    .padding(2.dp)
+                                    .background(
+                                        if (pagerState.currentPage == index)
+                                            Color.White else Color.LightGray,
+                                        CircleShape
+                                    )
+                            )
+                        }
+                    }
                 } else {
-                    // If no images
                     Box(
-                        modifier = Modifier
-                            .fillMaxSize()
-                            .background(Color.LightGray),
+                        modifier = Modifier.fillMaxSize(),
                         contentAlignment = Alignment.Center
                     ) {
-                        Text("No Images", color = Color.White)
+                        Text("No Images", color = Color.Gray)
                     }
                 }
             }
 
             Spacer(modifier = Modifier.height(8.dp))
 
-            // Rent info row
+
             Row(
-                horizontalArrangement = Arrangement.SpaceBetween,
-                modifier = Modifier.fillMaxWidth()
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween
             ) {
-                Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                    Text(rental.furnishing, fontWeight = FontWeight.Bold)
-                    Text("Type", color = Color.Gray, fontSize = 13.sp)
-                }
-                Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                    Text(rental.area, fontWeight = FontWeight.Bold)
-                    Text("Built Up Area", color = Color.Gray, fontSize = 13.sp)
-                }
-                Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                    Text(rental.rent, fontWeight = FontWeight.Bold)
-                    Text("Rent", color = Color.Gray, fontSize = 13.sp)
-                }
+                InfoItem(rental.furnishing, "Type")
+                InfoItem(rental.area, "Area in Sqft.")
+                InfoItem(rental.rent, "Rent")
             }
 
             if (showPhone) {
                 Spacer(modifier = Modifier.height(8.dp))
                 Text(
-                    text = "📞 Contact: +91 98765 43210",
+                    "📞 Contact: +91 8076768383",
                     color = Color(0xFF051A86),
                     fontWeight = FontWeight.SemiBold
                 )
             }
         }
+    }
+
+    selectedImage?.let { imageUrl ->
+        Dialog(onDismissRequest = { selectedImage = null }) {
+
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .background(Color.Black)
+            ) {
+
+                AsyncImage(
+                    model = imageUrl,
+                    contentDescription = "Full Image",
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .clickable { selectedImage = null },
+                    contentScale = ContentScale.Fit
+                )
+
+                IconButton(
+                    onClick = { selectedImage = null },
+                    modifier = Modifier
+                        .align(Alignment.TopEnd)
+                        .padding(16.dp)
+                ) {
+                    Icon(
+                        imageVector = Icons.Filled.Close,
+                        contentDescription = "Close",
+                        tint = Color.White
+                    )
+                }
+            }
+        }
+    }
+}
+
+@Composable
+fun InfoItem(value: String, label: String) {
+    Column(horizontalAlignment = Alignment.CenterHorizontally) {
+        Text(value, fontWeight = FontWeight.Bold)
+        Text(label, fontSize = 13.sp, color = Color.Gray)
     }
 }
