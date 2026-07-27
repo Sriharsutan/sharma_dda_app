@@ -5,15 +5,15 @@ plugins {
 }
 
 android {
-    namespace = "com.example.dda_v1"
-    compileSdk = 34
+    namespace = "com.assist.doorstepdocuments"
+    compileSdk = 35
 
     defaultConfig {
-        applicationId = "com.example.dda_v1"
+        applicationId = "com.assist.doorstepdocuments"
         minSdk = 24
-        targetSdk = 34
-        versionCode = 1
-        versionName = "1.0"
+        targetSdk = 35
+        versionCode = 5
+        versionName = "1.4"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
         vectorDrawables {
@@ -27,13 +27,21 @@ android {
         }
     }
 
+    signingConfigs {
+        create("release") {
+            storeFile = file("dda-upload-key.jks")
+//            storePassword = System.getenv("DDA_STORE_PASSWORD")
+            keyAlias = "dda_key"
+//            keyPassword = System.getenv("DDA_KEY_PASSWORD")
+            storePassword = "Forgot@pa&&w0rd"
+            keyPassword = "Forgot@pa&&w0rd"
+        }
+    }
+
     buildTypes {
         release {
             isMinifyEnabled = false
-            proguardFiles(
-                getDefaultProguardFile("proguard-android-optimize.txt"),
-                "proguard-rules.pro"
-            )
+            signingConfig = signingConfigs.getByName("release")
         }
     }
 
@@ -65,6 +73,8 @@ dependencies {
     implementation("androidx.core:core-ktx:1.13.1") // Updated
     implementation("androidx.lifecycle:lifecycle-runtime-ktx:2.7.0") // Updated
     implementation("androidx.activity:activity-compose:1.9.0") // Updated
+    implementation("androidx.activity:activity-ktx:1.9.2")
+    implementation("androidx.fragment:fragment-ktx:1.6.2")
     implementation(platform("androidx.compose:compose-bom:2024.06.00")) // Updated
     implementation("androidx.compose.ui:ui")
     implementation("androidx.compose.ui:ui-graphics")
@@ -79,6 +89,7 @@ dependencies {
     implementation("com.google.firebase:firebase-auth-ktx")
     implementation("com.google.firebase:firebase-firestore-ktx")
     implementation("com.google.firebase:firebase-storage-ktx")
+    implementation("com.google.firebase:firebase-messaging")
 
     // Navigation
     implementation("androidx.navigation:navigation-compose:2.7.7") // Updated
